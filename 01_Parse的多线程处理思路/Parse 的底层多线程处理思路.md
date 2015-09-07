@@ -531,3 +531,126 @@ kqueue是在XNU内核中发生各种事件时，在应用程序编程方执行�
 
 上面源代码非常相似的代码，使用在了Core Foundation框架的用于异步网络的API  `CFSocket` 中。因为Foundation框架的异步网络API是通过CFSocket实现的，所以可享受到仅使用Foundation框架的 `Dispatch Source`  (即GCD)带来的好处。
 
+
+展示作用
+
+
+ ```Objective-C
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    dispatch_queue_t queue1 = dispatch_queue_create("com.iOSChengXuYuan.queue1", 0);
+    dispatch_queue_t queue2 = dispatch_queue_create("com.iOSChengXuYuan.queue2", 0);
+    dispatch_group_t group = dispatch_group_create();
+    
+    dispatch_async(queue1, ^{
+        NSLog(@"任务 1 ： queue 1...");
+        sleep(1);
+        NSLog(@"✅完成任务 1");
+    });
+    
+    dispatch_async(queue2, ^{
+        NSLog(@"任务 1 ： queue 2...");
+        sleep(1);
+        NSLog(@"✅完成任务 2");
+    });
+    
+    dispatch_group_async(group, queue1, ^{
+        NSLog(@"🚫正在暂停 1");
+        dispatch_suspend(queue1);
+    });
+    dispatch_group_async(group, queue2, ^{
+        NSLog(@"🚫正在暂停 2");
+        dispatch_suspend(queue2);
+    });
+    
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    NSLog(@"＝＝＝＝＝＝＝等待两个queue完成, 再往下进行...");
+    dispatch_async(queue1, ^{
+        NSLog(@"任务 2 ： queue 1");
+    });
+    dispatch_async(queue2, ^{
+        NSLog(@"任务 2 ： queue 2");
+    });
+    NSLog(@"🔴为什么这个NSLog会在上面两个NSLog之前打印❓❓答：dispatch_suspend的作用‼️");
+    
+    dispatch_resume(queue1);
+    dispatch_resume(queue2);
+}
+ ```
+
+打印：
+
+ ```Objective-C
+2015-09-06 02:44:59.614 CYLDispatchQueueSuspendTest[1610:116662] 任务 1 ： queue 2...
+2015-09-06 02:44:59.613 CYLDispatchQueueSuspendTest[1610:116665] 任务 1 ： queue 1...
+2015-09-06 02:45:00.614 CYLDispatchQueueSuspendTest[1610:116665] ✅完成任务 1
+2015-09-06 02:45:00.614 CYLDispatchQueueSuspendTest[1610:116662] ✅完成任务 2
+2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116662] 🚫正在暂停 2
+2015-09-06 02:45:00.615 CYLDispatchQueueSuspendTest[1610:116665] 🚫正在暂停 1
+2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116515] ＝＝＝＝＝＝＝等待两个queue完成, 再往下进行...
+2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116515] 🔴为什么这个NSLog会在上面两个NSLog之前打印❓❓答：dispatch_suspend的作用‼️
+2015-09-06 02:45:00.617 CYLDispatchQueueSuspendTest[1610:116665] 任务 2 ： queue 1
+2015-09-06 02:45:00.619 CYLDispatchQueueSuspendTest[1610:116665] 任务 2 ： queue 2
+ ```
+
+
+
+ ```Objective-C
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    NSMutableArray *array = [[NSMutableArray alloc] init];
+    dispatch_group_t group = dispatch_group_create();
+    for(int i = 0; i< 100000; ++i) {
+        dispatch_group_async(group, queue, ^{
+            [array addObject:[NSNumber numberWithInt:i]];
+        });
+    }
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    NSLog(@"%@",  @([array count]));
+ ```
+
+运行结果绝对大跌眼镜：
+
+我运行了三次，三次结果均不一致：
+
+
+ 1. 第一次：崩溃。。。
+ ![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20150907/00/17338872420150907004449062.png?877x116_130
+)
+
+
+ ```Objective-C
+CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898487ca00: pointer being freed was not allocated
+*** set a breakpoint in malloc_error_break to debug
+(lldb) 
+ ```
+
+ 2. 第二次：不够。。
+
+ ```Objective-C
+2015-09-07 00:42:20.145 CYLDispatchSemaphoreTest[10417:779722] 99996
+ ```
+
+ 2. 第三次：还是不够。。。
+
+
+ ```Objective-C
+2015-09-07 00:42:52.734 CYLDispatchSemaphoreTest[10438:780505] 99949
+ ```
+
+
+
+ ```Objective-C
+ dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1) ;
+    NSMutableArray *array = [[NSMutableArray alloc] init];
+    for(int i = 0; i< 100000; ++i) {
+        dispatch_sync(queue, ^{
+            [array addObject:[NSNumber numberWithInt:i]];
+        });
+
+    }
+    NSLog(@"%@", @([array count]));
+ ```
+
+
