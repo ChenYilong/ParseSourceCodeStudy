@@ -5,16 +5,16 @@
 	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
 	<false/>
 	<key>IDESourceControlProjectIdentifier</key>
-	<string>B7E0EC7C-7BEB-4B1F-9C39-33FF9910AB1F</string>
+	<string>E6ABCA00-B2E0-4740-9DEF-F5D23E432457</string>
 	<key>IDESourceControlProjectName</key>
-	<string>project</string>
+	<string>CYLDispatchQueueSuspendTest</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
 	<dict>
 		<key>3E1F6CEABE01F6DBB2CEAF0D812BE4F96B15FA43</key>
 		<string>https://github.com/ChenYilong/ParseSourceCodeStudy.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
-	<string>01_Parse的多线程处理思路/Demo_04_展示dispatch_semaphore_t基本用法/CYLDispatchSemaphoreTest.xcodeproj/project.xcworkspace</string>
+	<string>01_Parse的多线程处理思路/Demo_02_对DispatchQueue实现取消恢复操作_简单版/CYLDispatchQueueSuspendTest.xcodeproj</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
 		<key>3E1F6CEABE01F6DBB2CEAF0D812BE4F96B15FA43</key>
