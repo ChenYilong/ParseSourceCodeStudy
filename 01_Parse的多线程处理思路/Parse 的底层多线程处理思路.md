@@ -654,3 +654,21 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
  ```
 
 
+
+##在项目中的应用：强制让单元测试能同步进行
+
+```Objective-C
+ @interface PFEventuallyQueueTestHelper : NSObject {
+    dispatch_semaphore_t events[PFEventuallyQueueEventCount];
+}
+
+- (void)clear;
+- (void)notify:(PFEventuallyQueueTestHelperEvent)event;
+- (BOOL)waitFor:(PFEventuallyQueueTestHelperEvent)event;
+```
+
+
+
+ > PFEventuallyQueueTestHelper gets notifications of various events happening in the command cache,
+// so that tests can be synchronized. See CommandTests.m for examples of how to use this.
+
