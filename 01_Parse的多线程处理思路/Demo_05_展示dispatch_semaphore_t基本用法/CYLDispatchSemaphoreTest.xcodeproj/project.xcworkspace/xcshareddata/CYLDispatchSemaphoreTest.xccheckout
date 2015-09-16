@@ -14,7 +14,7 @@
 		<string>https://github.com/ChenYilong/ParseSourceCodeStudy.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
-	<string>01_Parse的多线程处理思路/Demo_04_展示dispatch_semaphore_t基本用法/CYLDispatchSemaphoreTest.xcodeproj</string>
+	<string>01_Parse的多线程处理思路/Demo_05_展示dispatch_semaphore_t基本用法/CYLDispatchSemaphoreTest.xcodeproj</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
 		<key>3E1F6CEABE01F6DBB2CEAF0D812BE4F96B15FA43</key>
