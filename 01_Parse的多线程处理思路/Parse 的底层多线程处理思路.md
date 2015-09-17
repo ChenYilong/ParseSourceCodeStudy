@@ -654,7 +654,6 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
  ```
 
 
-
 ##在项目中的应用：强制让单元测试能同步进行
 
 ```Objective-C
@@ -731,3 +730,5 @@ semaphore的做法就好像做出租车
 车 | 线程 | 代码 |
 耐心的极限时间 | 超时时间 |  `dispatch_semaphore_wait`  |
 逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  |
+
+
