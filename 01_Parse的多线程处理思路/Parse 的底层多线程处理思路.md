@@ -672,3 +672,62 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
  > PFEventuallyQueueTestHelper gets notifications of various events happening in the command cache,
 // so that tests can be synchronized. See CommandTests.m for examples of how to use this.
 
+#Command处理思路
+
+
+ ```Objective-C
+//PFURLSessionCommandRunner.m
+ - (BFTask *)runCommandAsync:(PFRESTCommand *)command withOptions:(PFCommandRunningOptions)options {
+    return [self runCommandAsync:command withOptions:options cancellationToken:nil];
+}
+
+- (BFTask *)runCommandAsync:(PFRESTCommand *)command
+                withOptions:(PFCommandRunningOptions)options
+          cancellationToken:(BFCancellationToken *)cancellationToken {
+    return [self _performCommandRunningBlock:^id{
+        [command resolveLocalIds];
+        NSURLRequest *request = [self.requestConstructor dataURLRequestForCommand:command];
+        return [_session performDataURLRequestAsync:request forCommand:command cancellationToken:cancellationToken];
+    } withOptions:options cancellationToken:cancellationToken];
+}
+ ```
+semaphore的做法就好像做出租车
+
+你进去后，空车标志落下，别人不能上车，等你下车后，司机把空车标志竖起来，别人才可以上车。要不然即使你坐上了车也会有人跟你抢座位。
+
+ [《关于dispatch_semaphore的使用》](http://www.cnblogs.com/snailHL/p/3906112.html) 中有这样的描述：
+
+关于信号量，一般可以用停车来比喻。
+
+>　　停车场剩余4个车位，那么即使同时来了四辆车也能停的下。如果此时来了五辆车，那么就有一辆需要等待。
+
+>　　信号量的值就相当于剩余车位的数目，dispatch_semaphore_wait函数就相当于来了一辆车，dispatch_semaphore_signal
+
+>　　就相当于走了一辆车。停车位的剩余数目在初始化的时候就已经指明了（dispatch_semaphore_create（long value）），
+
+>　　调用一次dispatch_semaphore_signal，剩余的车位就增加一个；调用一次dispatch_semaphore_wait剩余车位就减少一个；
+
+>　　当剩余车位为0时，再来车（即调用dispatch_semaphore_wait）就只能等待。有可能同时有几辆车等待一个停车位。有些车主
+
+>　　没有耐心，给自己设定了一段等待时间，这段时间内等不到停车位就走了，如果等到了就开进去停车。而有些车主就像把车停在这，
+
+>　　所以就一直等下去。
+
+ [《GCD dispatch_semaphore 信号量 协调线程同步》](http://m.blog.csdn.net/blog/choudang/38121827) 也有类似的比喻：
+
+
+ > 以一个停车场是运作为例。为了简单起见，假设停车场只有三个车位，一开始三个车位都是空的。这时如果同时来了五辆车，看门人允许其中三辆不受阻碍的进入，然后放下车拦，剩下的车则必须在入口等待，此后来的车也都不得不在入口处等待。这时，有一辆车离开停车场，看门人得知后，打开车拦，放入一辆，如果又离开两辆，则又可以放入两辆，如此往复。
+</p> 在这个停车场系统中，车位是公共资源，每辆车好比一个线程，看门人起的就是信号量的作用。
+更进一步，信号量的特性如下：信号量是一个非负整数（车位数），所有通过它的线程（车辆）都会将该整数减一（通过它当然是为了使用资源），当该整数值为零时，所有试图通过它的线程都将处于等待状态。在信号量上我们定义两种操作： Wait（等待） 和 Release（释放）。 当一个线程调用Wait（等待）操作时，它要么通过然后将信号量减一，要么一直等下去，直到信号量大于一或超时。Release（释放）实际上是在信号量上执行加操作，对应于车辆离开停车场，该操作之所以叫做“释放”是因为加操作实际上是释放了由信号量守护的资源。
+
+
+这个比喻里可以用一个表格来表示：
+
+喻体 | 本体 |  代码 | 解释
+-------------|-------------|-------------|-------------
+车位 | 信号量 |  `dispatch_semaphore_t`  |
+剩余几个车位 | 最大并发线程 |  `dispatch_semaphore_t`  |
+看门人起的作用 | 信号量的作用 | `dispatch_semaphore_t`  |
+车 | 线程 | 代码 |
+耐心的极限时间 | 超时时间 |  `dispatch_semaphore_wait`  |
+逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  |

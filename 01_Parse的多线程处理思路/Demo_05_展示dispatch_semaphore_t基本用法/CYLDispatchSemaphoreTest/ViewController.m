@@ -23,6 +23,7 @@
      *生成Dispatch Semaphore
      Dispatch Semaphore 的计数初始值设定为“1”
      (该初始值的1与下文中两个函数dispatch_semaphore_wait与dispatch_semaphore_signal进行的减1、加1里的1没有必然联系。
+     
      就算初始值是100，两个函数dispatch_semaphore_wait与dispatch_semaphore_signal还是会减“1”、加“1”)。
      保证可访问 NSMutableArray 类对象的线程
      同时只能有1个
