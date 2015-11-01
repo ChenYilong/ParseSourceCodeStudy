@@ -34,7 +34,7 @@ GCD提供了dispatch queues（调度队列）来执行代码段，这些队列�
 
 ## 串行队列中的同步与异步的区别
 
-串行队列能确保顺序执行任务，他们两个的唯一区别在于`dispatch_sync`只会在 block 完全执行完之后返回，`dispatch_sync` 不能确保会在 block 完全执行完之后返回，唯一能确定的是会在被添加到queue 队列后返回。
+串行队列能确保顺序执行任务，他们两个的唯一区别在于`dispatch_sync`只会在 block 完全执行完之后返回，`dispatch_async` 不能确保会在 block 完全执行完之后返回，唯一能确定的是会在被添加到queue 队列后返回。
 
 
 下面的代码：
