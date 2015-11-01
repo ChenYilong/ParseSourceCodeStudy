@@ -18,7 +18,7 @@
 更是有人这样表态：
 
 
-加入不让他用 GCD：
+假如不让他用 GCD：
 
 
 ![enter image description here](http://i66.tinypic.com/34g8qd1.jpg)
