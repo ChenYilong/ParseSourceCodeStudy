@@ -1,13 +1,9 @@
-#Facebook 出品的 Parse 其 iOS SDK 的底层多线程处理思路
-
-#《Parse源码浅析系列（一）-Parse的底层多线程处理思路》
-
-#《Parse源码浅析系列（一）---Parse的底层多线程处理思路：GCD高级用法》
-目的是通过源码来展示GCD高级用法。将思路浓缩为5个左右的Demo。
+#下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注
 
 
-《Parse iOS SDK 源码学习系列》之底层多线程处理思路
+# Parse源码浅析系列（一）---Parse的底层多线程处理思路：GCD高级用法
 
+第一篇的目的是通过解读 Parse 源码来展示GCD两个高级用法： `Dispatch Source ` （派发源）和 `Dispatch Semaphore`  （信号量），并将思路浓缩为可运行的6个 Demo 中，详见仓库里的 Demo1到 Demo6。
 
  [《iOS开发周报：iOS 8.4.1 发布，iOS 8 时代谢幕》](http://www.infoq.com/cn/news/2015/08/ios-weekly-ios841#rd) 有这样一段介绍：
 
@@ -18,98 +14,152 @@
 
 Apple 的 CloudKit、Facebook 的 Parse、中国的 LeanCloud （原名 AVOS）
 
+## Parse 的“离线存储对象”操作介绍
 
-使用的dispatch source而不使用dispatch_async的唯一原因就是利用联结的优势。
+大多数保存功能可以立刻执行，并通知应用“保存完毕”。不过若不需要知道保存完成的时间，则可使用Parse 的“离线存储对象”操作（saveEventually 或 deleteEventually） 来代替，也就是：
 
-调用 `dispatch_source_merge_data(_processingQueueSource, 1);`  后，会执行句柄，
+如果用户目前尚未接入网络，Parse “离线存储对象”操作（saveEventually 或 deleteEventually） 会缓存设备中的数据，并在网络连接恢复后上传。如果应用在网络恢复之前就被关闭了，那么当它下一次打开时，SDK 会自动再次尝试保存操作。
+
+所有 saveEventually（或 deleteEventually）的相关调用，将按照调用的顺序依次执行。因此，多次对某一对象使用 saveEventually 是安全的。
+
+国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) 也提供了相同的功能：详见[《LeanCloud官方文档-iOS / OS X 数据存储开发指南--离线存储对象》](https://leancloud.cn/docs/ios_os_x_guide.html#离线存储对象) 
+
+（利益相关声明：本人目前就职于 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) ）
+
+
+## Parse 的“离线存储对象”实现介绍
+
+Parse 的“离线存储对象”操作（saveEventually 或 deleteEventually） 是通过 GCD 的 `Dispatch Source` （信号源）来实现的。下面对 `Dispatch Source` （信号源）进行一下介绍：
+
+
+
+GCD中除了主要的 `Dispatch Queue` 外，还有不太引人注目的 `Dispatch Source` .它是BSD系内核惯有功能kqueue的包装。kqueue 是在 XNU 内核中发生各种事件时，在应用程序编程方执行处理的技术。其 CPU 负荷非常小，尽量不占用资源。kqueue 可以说是应用程序处理 XNU 内核中发生的各种事件的方法中最优秀的一种。
+
+ `Dispatch Source` 也使用在了 Core Foundation 框架的用于异步网络的API  `CFSocket` 中。因为Foundation 框架的异步网络 API 是通过CFSocket实现的，所以可享受到仅使用 Foundation 框架的 `Dispatch Source` 带来的好处。
+
+那么优势何在？使用的 `Dispatch Source` 而不使用 `dispatch_async` 的唯一原因就是利用联结的优势。
+
+联结的大致流程：在任一线程上调用它的的一个函数 `dispatch_source_merge_data`  后，会执行 `Dispatch Source` 事先定义好的句柄（可以把句柄简单理解为一个 block ）。
 
 这个过程叫 `Custom event` ,用户事件。是 dispatch source 支持处理的一种事件。
 
+ > 简单地说，这种事件是由你调用 `dispatch_source_merge_data` 函数来向自己发出的信号。
 
- > 简单地说，这种事件是由你调用dispatch_source_merge_data函数来向自己发出的信号。
+下面介绍下使用步骤：
 
+### 第一步：创建一个`Dispatch Source`
 
-
-句柄如下：
 
  ```Objective-C
+    // 详见 Demo1、Demo2
+    // 指定DISPATCH_SOURCE_TYPE_DATA_ADD，做成Dispatch Source(分派源)。设定Main Dispatch Queue 为追加处理的Dispatch Queue
+    _processingQueueSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0,
+                                                    dispatch_get_main_queue());
+ ```
+
+下面对参数进行下解释：
+
+其中自定义源累积事件中传递过来的值，累积的方式可以是相加的，正如上面代码中的 `DISPATCH_SOURCE_TYPE_DATA_ADD` ，也可以是逻辑或 `DISPATCH_SOURCE_TYPE_DATA_OR` 。这是最常见的两个 `Dispatch Source` 可以处理的事件。
+
+
+`Dispatch Source` 可处理的所有事件。如下表所示：
+
+|名称|内容|
+-------------|-------------
+ `DISPATCH_SOURCE_TYPE_DATA_ADD`  | 变量增加
+ `DISPATCH_SOURCE_TYPE_DATA_OR`  | 变量OR
+ `DISPATCH_SOURCE_TYPE_MACH_SEND`  | MACH端口发送
+ `DISPATCH_SOURCE_TYPE_MACH_RECV`  |  MACH端口接收
+ `DISPATCH_SOURCE_TYPE_PROC` | 监测到与进程相关的事件
+ `DISPATCH_SOURCE_TYPE_READ`  | 可读取文件映像
+ `DISPATCH_SOURCE_TYPE_SIGNAL`  | 接收信号
+ `DISPATCH_SOURCE_TYPE_TIMER`  | 定时器
+ `DISPATCH_SOURCE_TYPE_VNODE`  | 文件系统有变更
+ `DISPATCH_SOURCE_TYPE_WRITE`  | 可写入文件映像
+
+
+自定义源也需要一个队列，用来处理所有的响应句柄（block）。那么岂不是有两个队列了？没错，至于 `Dispatch Queue` 这个队列的线程执行与  `Dispatch Source`这个队列的线程执行的关系，下文会结合 Demo1和 Demo2进行详细论述。
+
+### 第二步：创建`Dispatch Source`的事件处理方法
+
+
+分派源提供了高效的方式来处理事件。首先注册事件处理程序，事件发生时会收到通知。如果在系统还没有来得及通知你之前事件就发生了多次，那么这些事件会被合并为一个事件。这对于底层的高性能代码很有用，但是OS应用开发者很少会用到这样的功能。类似地，分派源可以响应UNIX信号、文件系统的变化、其他进程的变化以及Mach Port事件。它们中很多都在Mac系统上很有用，但是iOS开发者通常不会用到。
+
+不过，自定义源在iOS中很有用，尤其是在性能至关重要的场合进行进度反馈。如下所示，首先创建一个源:自定义源累积事件中传递过来的值。累积方式可以是相加( DISPATCH_SOURCE_TYPE_DATA_ADD ),
+也可以是逻辑或( DISPATCH_SOURCE_DATA_OR )。自定义源也需要一个队列，用来处理所有的响应处理块。
+
+创建源后，需要提供相应的处理方法。当源生效时会分派注册处理方法;当事件发生时会分派事件处理方法;当源被取消时会分派取消处理方法。自定义源通常只需要一个事件处理方法，可以像这样创建:
+
+
+ ```Objective-C
+
+ /*
+  *省略部分： 
+    指定DISPATCH_SOURCE_TYPE_DATA_ADD，做成Dispatch Source(分派源)。设定Main Dispatch Queue 为追加处理的Dispatch Queue
+    详见Demo1、Demo2
+  *
+  */
+    __block NSUInteger totalComplete = 0;
     dispatch_source_set_event_handler(_processingQueueSource, ^{
-        [self _runCommands];
+        //当处理事件被最终执行时，计算后的数据可以通过dispatch_source_get_data来获取。这个数据的值在每次响应事件执行后会被重置，所以totalComplete的值是最终累积的值。
+        NSUInteger value = dispatch_source_get_data(_processingQueueSource);
+        totalComplete += value;
+        NSLog(@"进度：%@", @((CGFloat)totalComplete/100));
     });
  ```
-何时会调用句柄？
+
+
+
+在同一时间，只有一个处理方法块的实例被分派。如果这个处理方法还没有执行完毕，另一个事件就发生了，事件会以指定方式(ADD或者OR)进行累积。通过合并事件的方式，系统即使在高负
+载情况下也能正常工作。当处理事件件被最终执行时，计算后的数据可以通过 `dispatch_source_get_data` 来获取。这个数据的值在每次响应事件执行后会被重置，所以上面例子中 `totalComplete` 的值是最终累积的值。
+
+### 第三步：处理`Dispatch Source`的暂停与恢复操作
+
+
+当追加大量处理到Dispatch Queue时，在追加处理的过程中，有时希望不执行已追加的处理。例如演算结果被Block截获时，一些处理会对这个演算结果造成影响。
+
+在这种情况下，只要挂起Dispatch Queue即可。当可以执行时再恢复。
 
  ```Objective-C
-- (void)start {
-    dispatch_source_set_event_handler(_processingQueueSource, ^{
-        [self _runCommands];
-    });
-    [self resume];
-}
+dispatch_suspend(queue);
  ```
 
+ `dispatch_resume` 函数恢复指定的 `Dispatch Queue` .
+这些函数对已经执行的处理没有影响。挂起后，追加到 `Dispatch Queue` 中但尚未执行的处理在此之后停止执行。而恢复则使得这些处理能够继续执行。
 
-
+分派源创建时默认处于暂停状态，在分派源分派处理程序之前必须先恢复。因为忘记恢复分派源的状态而产生bug是常见的事儿。恢复的方法是调用 `dispatch_resume` :
 
  ```Objective-C
-- (void)resume {
-    if (self.running) {
-        return;
-    }
-    self.running = YES;
-    dispatch_resume(_processingQueueSource);
-    dispatch_source_merge_data(_processingQueueSource, 1);
-}
+dispatch_resume (source);
  ```
 
+### 第四步：向`Dispatch Source`发送事件
+
+恢复源后，就可以像下面的代码片段这样，通过 `dispatch_source_merge_data` 向分派源发送事件:
 
  ```Objective-C
-/*! Manually sets the network connection status. */
-- (void)setConnected:(BOOL)connected {
-    BFTaskCompletionSource *barrier = [BFTaskCompletionSource taskCompletionSource];
-    dispatch_async(_processingQueue, ^{
-        dispatch_sync(_synchronizationQueue, ^{
-            if (self.connected != connected) {
-                _connected = connected;
-                if (connected) {
-                    dispatch_source_merge_data(_processingQueueSource, 1);
-                }
-            }
-        });
-        barrier.result = nil;
-    });
-    if (connected) {
-        dispatch_async(_synchronizationQueue, ^{
-            if (_retryingSemaphore) {
-                dispatch_semaphore_signal(_retryingSemaphore);
-            }
-        });
-    }
-    [barrier.task waitForResult:nil];
-}
-
+    //2.
+    //恢复源后，就可以通过dispatch_source_merge_data向Dispatch Source(分派源)发送事件:
+    //详见Demo1、Demo2
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        for (NSUInteger index = 0; index < 100; index++) {
+            dispatch_async(queue, ^{
+            dispatch_source_merge_data(_processingQueueSource, 1);
+            usleep(20000);//0.02秒
+            });
+        }
  ```
 
-
- ```Objective-C
-- (void)_didEnqueueCommand:(id<PFNetworkCommand>)command
-            withIdentifier:(NSString *)identifier
-      taskCompletionSource:(BFTaskCompletionSource *)taskCompletionSource {
-    PFAssertIsOnDispatchQueue(_synchronizationQueue);
-
-    _taskCompletionSources[identifier] = taskCompletionSource;
-    dispatch_source_merge_data(_processingQueueSource, 1);
-
-    if (_retryingSemaphore) {
-        dispatch_semaphore_signal(_retryingSemaphore);
-    }
-}
-
- ```
-#GCD真的不能像OperationQueue那样终止任务？
+上面代码在每次循环中执行加1操作。也可以传递已处理记录的数目或已写入的字节数。在任何线程中都可以调用  `dispatch_source_merge_data` 。需要注意的是，不可以传递0值(事件不会被触发)，同样也不可以传递负数。
 
 
+# GCD真的不能像OperationQueue那样终止任务？
 
+### 完整例子Demo1：让 Dispatch Source “帮” Dispatch Queue 实现暂停和恢复功能
+
+本节配套代码在 `Demo1` 中（Demo_01_对DispatchSource实现取消恢复操作_main队列版）。
+
+先写一段代码演示下DispatchSource的基本用法：
 
  ```Objective-C
 //
@@ -189,7 +239,9 @@ Apple 的 CloudKit、Facebook 的 Parse、中国的 LeanCloud （原名 AVOS）
 
 耗时：2.376
 
+这段代码还可以进行如下优化：
 
+将创建异步的操作放在 for 循环内部：
 
  ```Objective-C
 - (void)viewDidLoad {
@@ -320,7 +372,18 @@ Apple 的 CloudKit、Facebook 的 Parse、中国的 LeanCloud （原名 AVOS）
 
  ```
 
-耗时：0.14，与之前的2.376相比，时间是后者的6% 。然而也因为并发执行，速度相当快，触发 `dispatch_source_set_event_handler` 的频率也大大减少，有时只会在结束时触发一次。
+耗时：0.14秒，与之前的2.376秒相比，时间是后者的17倍 ，性能相差达很大。
+
+###  DispatchSource能通过合并事件的方式确保在高负载下正常工作
+
+然而上例中也因为并发执行，速度相当快，调用 `dispatch_source_merge_data` 后所触发的 `dispatch_source_set_event_handler` 的频率也大大减少，有时只会在结束时触发一次。
+
+如果你细心观察下上例中的打印🔵（小蓝点）♻️（小绿点）个数是不一的，但 `totalComplete` 的值，或者进度条从0.0到1.0的执行是正常，但是🔵（小蓝点）为什么没有被打印？这是因为：
+
+ > DispatchSource能通过合并事件的方式确保在高负载下正常工作
+
+在同一时间，只有一个处理 block 的实例被分配，如果这个处理方法还没有执行完毕，另一个事件就发生了，事件会以指定方式（ADD或 OR）进行累积。DispatchSource能通过合并事件（block）的方式确保在高负载下正常工作。当处理事件被最终执行时，计算后的数据可以通过 `dispatch_source_get_data` 来获取。这个数据的值在每次响应时间执行后会被重置，所以上面的例子中进度条 `totalComplete` 的值是最终积累的值，而 block 不是每次都执行的，但打印🔵（小蓝点）♻️（小绿点）个数不一。但能确保进度条能从0.0到1.0的正常执行。
+
 
 
 下面我们来演示下如何控制Dispatch Source(分派源)，让它随时暂停，随时恢复：
@@ -365,9 +428,51 @@ Apple 的 CloudKit、Facebook 的 Parse、中国的 LeanCloud （原名 AVOS）
 
 ![enter image description here](http://i59.tinypic.com/suyt0o.jpg)
 
-你可能已经发现了：上面的代码是有问题的，它只是一种“假暂停”的状态。
+详见 `Demo1` 实现（Demo_01_对DispatchSource实现取消恢复操作_main队列版）。
 
-实际上 `Dispatch Queue` 没有“取消”这一概念。一旦将处理追加到 `Dispatch Queue` 中，就没有方法可将该处理去除，也没有方法可在执行中取消该处理。编程人员要么在处理中导入取消这一概念，像下面这样：
+### Dispatch Source 与 Dispatch Queue 两者在线程执行上的关系
+
+本节配套代码在  `Demo2` 中（Demo_02_对DispatchSource实现取消恢复操作_global队列版）。
+
+答案是：没有关系。两者会独立运行。 Dispatch Queue 像一个生产任务的生产者，而 Dispatch Source 像处理任务的消费者。可以一边异步生产，也可一边异步消费。你可以在任意线程上调用 `dispatch_source_merge_data` 以触发 `dispatch_source_set_event_handler` 。而句柄的执行线程，取决于你创建句柄时所指定的线程，如果你像下面这样创建，那么句柄永远会在主线程执行：
+
+
+ ```Objective-C
+    // 指定DISPATCH_SOURCE_TYPE_DATA_ADD，做成Dispatch Source(分派源)。设定Main Dispatch Queue 为追加处理的 Dispatch Queue
+    _processingQueueSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0,
+                                                      dispatch_get_main_queue());
+ ```
+
+如果你像下面这样创建，那么句柄会在异步线程执行：
+
+ ```Objective-C
+    // 指定DISPATCH_SOURCE_TYPE_DATA_ADD，做成Dispatch Source(分派源)。设定 global Dispatch Queue 为追加处理的Dispatch Queue
+    _processingQueueSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0,
+                                                    dispatch_get_global_queue(0, 0));
+ ```
+
+详见 `Demo2` 实现（Demo_02_对DispatchSource实现取消恢复操作_global队列版）
+
+### 让 Dispatch Source 与 Dispatch Queue 同时实现暂停和恢复
+
+
+你可能已经发现了：上面的代码是有问题的，它只是一种“假暂停”的状态。for 循环还是要执行100变，循环的次数并没有你的暂停而暂停，这在实际开发中是不允许的，因为真正的性能瓶颈永远会是在这里，这样的暂停毫无意义。那么如何让 for 循环随时可以暂停？
+
+实际上 `Dispatch Queue` 没有“取消”这一概念。一旦将处理追加到 `Dispatch Queue` 中，就没有方法可将该处理去除，也没有方法可在执行中取消该处理。编程人员要么在处理中导入取消这一概念。
+
+要么放弃取消，或者使用 `NSOperationQueue` 等其他方法。
+
+ `Dispatch Source` 与 `Dispatch Queue` 不同，是可以取消的。而且取消时必须执行的处理可指定为回调用的Block形式。
+
+ `Dispatch Source`  是如何执行取消的？打个比方：
+
+ `Dispatch Queue` 就好像瓜农种瓜，只要种了瓜，就走上了一条不归路：不管有没有人买，你都必须要好好施肥，好好浇水。没有放弃的余地。
+
+ `Dispatch Source` 就好像买瓜的人，比如你在瓜农种瓜时，告诉瓜农，“你的瓜熟一个我买一个”，等瓜成熟了，你开始买，不断得买，陆续买了100个，突然你感觉吃够了，你不买了，但是瓜还是在不断得成熟着，然后只能烂在地里了。等你突然又想买的时候，地里已经有1000个瓜，你要买，必须全买。。。
+
+回到代码里，也就是说 `Dispatch Source` 的暂停，只是暂停调用 `dispatch_source_set_event_handler` ， `Dispatch Queue` 中的for循环并没有因此暂停，它还是在一直运行着，等你恢复 `Dispatch Source` 的时候， `Dispatch Queue` 可能已经运行结束。然后你就会像上面的gif图中那样，从“进度：0.9”暂停，恢复时直接跳到“进度：1”，跳过了中间的“进度：0.91”、“进度：0.92”、“进度：0.93”等等。所以说这是一种“假暂停”。
+
+那么如何在处理中导入取消这一概念？代码如下：
 
  ```Objective-C
 dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -383,25 +488,7 @@ dispatch_async(queue, ^{
 });
  ```
 
-
-
-要么放弃取消，或者使用 `NSOperationQueue` 等其他方法。
-
-
- `Dispatch Source` 与 `Dispatch Queue` 不同，是可以取消的。而且取消时必须执行的处理可指定为回调用的Block形式。
-
- `Dispatch Source`  是如何执行取消的？打个比方：
-
- `Dispatch Queue` 就好像瓜农种瓜，只要种了瓜，就走上了一条不归路：不管有没有人买，你都必须要好好施肥，好好浇水。没有放弃的余地。
-
- `Dispatch Source` 就好像买瓜的人，比如你在瓜农种瓜时，告诉瓜农，“你的瓜熟一个我买一个”，等瓜成熟了，你开始买，不断得买，陆续买了100个，突然你感觉吃够了，你不买了，但是瓜还是在不断得成熟着，然后只能烂在地里了。等你突然又想买的时候，地里已经有1000个瓜，你要买，必须全买。。。
-
-回到代码里，也就是说 `Dispatch Source` 的暂停，只是暂停调用 `dispatch_source_set_event_handler` ， `Dispatch Queue` 中的for循环并没有因此暂停，它还是在一直运行着，等你恢复 `Dispatch Source` 的时候， `Dispatch Queue` 可能已经运行结束。然后你就会像上面的gif图中那样，从“进度：0.9”暂停，恢复时直接跳到“进度：1”，跳过了中间的“进度：0.91”、“进度：0.92”、“进度：0.93”等等。
-
-
-所以说这是一种“假暂停”，所以一般开发中也不会把 `Dispatch Queue` 做成Dispatch Source(分派源)。而是其他可以手动取消的。
-
-代码则需要做如下修改：
+完整的代码则需要做如下修改：
 
  ```Objective-C
 - (void)viewDidLoad {
@@ -476,63 +563,95 @@ dispatch_async(queue, ^{
 ![enter image description here](http://i61.tinypic.com/33m06er.jpg)
 
 
-当追加大量处理到Dispatch Queue时，在追加处理的过程中，有时希望不执行已追加的处理。例如演算结果被Block截获时，一些处理会对这个演算结果造成影响。
 
-在这种情况下，只要挂起Dispatch Queue即可。当可以执行时再恢复。
+## Parse “离线存储对象”操作的代码摘录
 
- ```Objective-C
-dispatch_suspend(queue);
- ```
-
- `dispatch_resume` 函数恢复指定的 `Dispatch Queue` .
-这些函数对已经执行的处理没有影响。挂起后，追加到 `Dispatch Queue` 中但尚未执行的处理在此之后停止执行。而恢复则使得这些处理能够继续执行。
-
-
-分派源提供了高效的方式来处理事件。首先注册事件处理程序，事件发生时会收到通知。如果在系统还没有来得及通知你之前事件就发生了多次，那么这些事件会被合并为一个事件。这对于底层的高性能代码很有用，但是OS应用开发者很少会用到这样的功能。类似地，分派源可以响应UNIX信号、文件系统的变化、其他进程的变化以及Mach Port事件。它们中很多都在Mac系统上很有用，但是OS开发者通常不会用到。
-
-不过，自定义源在iOS中很有用，尤其是在性能至关重要的场合进行进度反馈。如下所示，首先创建一个源:自定义源累积事件中传递过来的值。累积方式可以是相加( DISPATCH_SOURCE_TYPE_DATA_ADD ),
-也可以是逻辑或( DISPATCH_SOURCE_DATA_OR )。自定义源也需要一个队列，用来处理所有的响应处理块。
-
-创建源后，需要提供相应的处理方法。当源生效时会分派注册处理方法;当事件发生时会分派事件处理方法;当源被取消时会分派取消处理方法。自定义源通常只需要一个事件处理方法，可以像这样创建:
-
-
-在同一时间，只有一个处理方法块的实例被分派。如果这个处理方法还没有执行完毕，另一个事件就发生了，事件会以指定方式(ADD或者OR)进行累积。通过合并事件的方式，系统即使在高负
-载情况下也能正常工作。当处理事件件被最终执行时，计算后的数据可以通过 `dispatch_source_get_data` 来获取。这个数据的值在每次响应事件执行后会被重置，所以上面例子中 `totalComplete` 的值是最终累积的值。
-
-分派源创建时默认处于暂停状态，在分派源分派处理程序之前必须先恢复。因为忘记恢复分派源的状态而产生bug是常见的事儿。恢复的方法是调用 `dispatch_resume` :
+句柄如下：
 
  ```Objective-C
-dispatch_resume (source);
+    dispatch_source_set_event_handler(_processingQueueSource, ^{
+        [self _runCommands];
+    });
  ```
 
-恢复源后，就可以像下面的代码片段这样，通过 `dispatch_source_merge_data` 向分派源发送事件:
+何时会调用句柄？ 下面将 Parse 里涉及调用句柄的语句罗列一下， 因为摘录的代码不完整，可能并不能看出使用的方法。所以可以大致预览一下，详情可以查看Parse 源码，并且我已将这些逻辑浓缩为可运行的 Demo，也可搭配理解。
 
-上面代码在每次循环中执行加1操作。也可以传递已处理记录的数目或已写入的字节数。在任何线程中都可以调用  `dispatch_source_merge_data` 。需要注意的是，不可以传递0值(事件不会被触发)，同样也不可以传递负数。
-
-
-
-GCD中除了主要的 `Dispatch Queue` 外，还有不太引人注目的Dispatch Sowce `Dispatch Sowce` .它是BSD系内核惯有功能kqueue的包装。
-kqueue是在XNU内核中发生各种事件时，在应用程序编程方执行处理的技术。其CPU负荷非常小，尽量不占用资源。kqueue可以说是应用程序处理XNU内核中发生的各种事件的方法中最优秀的一种。
- `Dispatch Source` 可处理以下事件。如下表所示：
-
-|名称|内容|
--------------|-------------
- `DISPATCH_SOURCE_TYPE_DATA_ADD`  | 变量增加
- `DISPATCH_SOURCE_TYPE_DATA_OR`  | 变量OR
- `DISPATCH_SOURCE_TYPE_MACH_SEND`  | MACH端口发送
- `DISPATCH_SOURCE_TYPE_MACH_RECV`  |  MACH端口接收
- `DISPATCH_SOURCE_TYPE_PROC` | 监测到与进程相关的事件
- `DISPATCH_SOURCE_TYPE_READ`  | 可读取文件映像
- `DISPATCH_SOURCE_TYPE_SIGNAL`  | 接收信号
- `DISPATCH_SOURCE_TYPE_TIMER`  | 定时器
- `DISPATCH_SOURCE_TYPE_VNODE`  | 文件系统有变更
- `DISPATCH_SOURCE_TYPE_WRITE`  | 可写入文件映像
+ ```Objective-C
+- (void)start {
+    dispatch_source_set_event_handler(_processingQueueSource, ^{
+        [self _runCommands];
+    });
+    [self resume];
+}
+ ```
 
 
-上面源代码非常相似的代码，使用在了Core Foundation框架的用于异步网络的API  `CFSocket` 中。因为Foundation框架的异步网络API是通过CFSocket实现的，所以可享受到仅使用Foundation框架的 `Dispatch Source`  (即GCD)带来的好处。
 
 
-展示作用
+ ```Objective-C
+- (void)resume {
+    if (self.running) {
+        return;
+    }
+    self.running = YES;
+    dispatch_resume(_processingQueueSource);
+    dispatch_source_merge_data(_processingQueueSource, 1);
+}
+ ```
+
+监听网络状态，一旦网络重连上之后，设置 connected属性为 YES，并重写其 setter 方法，调用 `dispatch_source_merge_data` 进行发送消息的操作：
+
+
+ ```Objective-C
+/*! Manually sets the network connection status. */
+- (void)setConnected:(BOOL)connected {
+    BFTaskCompletionSource *barrier = [BFTaskCompletionSource taskCompletionSource];
+    dispatch_async(_processingQueue, ^{
+        dispatch_sync(_synchronizationQueue, ^{
+            if (self.connected != connected) {
+                _connected = connected;
+                if (connected) {
+                    dispatch_source_merge_data(_processingQueueSource, 1);
+                }
+            }
+        });
+        barrier.result = nil;
+    });
+    if (connected) {
+        dispatch_async(_synchronizationQueue, ^{
+            if (_retryingSemaphore) {
+                dispatch_semaphore_signal(_retryingSemaphore);
+            }
+        });
+    }
+    [barrier.task waitForResult:nil];
+}
+
+ ```
+
+
+ ```Objective-C
+- (void)_didEnqueueCommand:(id<PFNetworkCommand>)command
+            withIdentifier:(NSString *)identifier
+      taskCompletionSource:(BFTaskCompletionSource *)taskCompletionSource {
+    PFAssertIsOnDispatchQueue(_synchronizationQueue);
+
+    _taskCompletionSources[identifier] = taskCompletionSource;
+    dispatch_source_merge_data(_processingQueueSource, 1);
+
+    if (_retryingSemaphore) {
+        dispatch_semaphore_signal(_retryingSemaphore);
+    }
+}
+
+ ```
+
+
+##  `Dispatch Semaphore` 信号量
+
+为了展示作用，举个反例：
+
+详见 Demo3（Demo_03_对DispatchQueue实现取消恢复操作_简单版）：
 
 
  ```Objective-C
@@ -652,9 +771,12 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
     }
     NSLog(@"%@", @([array count]));
  ```
+详见 Demo3（Demo_03_对DispatchQueue实现取消恢复操作_简单版）：
 
 
-##在项目中的应用：强制让单元测试能同步进行
+### 在项目中的应用：强制把异步任务转换为同步任务来方便进行单元测试
+
+下面是 Parse 的一段代码：
 
 ```Objective-C
  @interface PFEventuallyQueueTestHelper : NSObject {
@@ -666,33 +788,16 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 - (BOOL)waitFor:(PFEventuallyQueueTestHelperEvent)event;
 ```
 
+注释是这样写的：
 
 
  > PFEventuallyQueueTestHelper gets notifications of various events happening in the command cache,
 // so that tests can be synchronized. See CommandTests.m for examples of how to use this.
 
-#Command处理思路
+强制把异步任务转换为同步任务来方便进行单元测试。这个用途信号量是最合适的用途。但注意并不推荐应用到除此之外的其它场景！
 
+信号量属性底层工具，他虽然非常强大，但在多数需要使用它的场合，最好从设计角度重新考虑，看是否可以不用，应该优先考虑使用诸如操作队列这样的高级工具。通常可以通过增加一个分派队列配合  `dispatch_suspend` ，或者通过其它方式分解操作来避免使用信号量。信号量并非不好，只是它本身是锁，能不使用就不用。尽量用 cocoa 框架中的高级抽象，信号量非常接近底层。所以除了上面的例子是最佳应用场景外，不推荐应用到除此之外的其它场景！
 
- ```Objective-C
-//PFURLSessionCommandRunner.m
- - (BFTask *)runCommandAsync:(PFRESTCommand *)command withOptions:(PFCommandRunningOptions)options {
-    return [self runCommandAsync:command withOptions:options cancellationToken:nil];
-}
-
-- (BFTask *)runCommandAsync:(PFRESTCommand *)command
-                withOptions:(PFCommandRunningOptions)options
-          cancellationToken:(BFCancellationToken *)cancellationToken {
-    return [self _performCommandRunningBlock:^id{
-        [command resolveLocalIds];
-        NSURLRequest *request = [self.requestConstructor dataURLRequestForCommand:command];
-        return [_session performDataURLRequestAsync:request forCommand:command cancellationToken:cancellationToken];
-    } withOptions:options cancellationToken:cancellationToken];
-}
- ```
-semaphore的做法就好像做出租车
-
-你进去后，空车标志落下，别人不能上车，等你下车后，司机把空车标志竖起来，别人才可以上车。要不然即使你坐上了车也会有人跟你抢座位。
 
  [《关于dispatch_semaphore的使用》](http://www.cnblogs.com/snailHL/p/3906112.html) 中有这样的描述：
 
@@ -700,9 +805,9 @@ semaphore的做法就好像做出租车
 
 >　　停车场剩余4个车位，那么即使同时来了四辆车也能停的下。如果此时来了五辆车，那么就有一辆需要等待。
 
->　　信号量的值就相当于剩余车位的数目，dispatch_semaphore_wait函数就相当于来了一辆车，dispatch_semaphore_signal
+>　　信号量的值就相当于剩余车位的数目，dispatch_semaphore_wait函数就相当于来了一辆车，
 
->　　就相当于走了一辆车。停车位的剩余数目在初始化的时候就已经指明了（dispatch_semaphore_create（long value）），
+>　　dispatch_semaphore_signal，就相当于走了一辆车。停车位的剩余数目在初始化的时候就已经指明了（dispatch_semaphore_create（long value））
 
 >　　调用一次dispatch_semaphore_signal，剩余的车位就增加一个；调用一次dispatch_semaphore_wait剩余车位就减少一个；
 
@@ -732,4 +837,12 @@ semaphore的做法就好像做出租车
 逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  |
 
 
- 
+
+# 下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注
+
+----------
+
+
+Posted by [微博@iOS程序犭袁](http://weibo.com/luohanchenyilong/)  
+原创文章，版权声明：自由转载-非商用-非衍生-保持署名 | [Creative Commons BY-NC-ND 3.0](http://creativecommons.org/licenses/by-nc-nd/3.0/deed.zh)
+
