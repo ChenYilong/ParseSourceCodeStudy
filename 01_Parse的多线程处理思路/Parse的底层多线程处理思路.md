@@ -35,8 +35,8 @@
 如果对 GCD 布什太熟悉，请先读下[《GCD 扫盲篇》](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/GCD扫盲篇.md)。
 
 
- 1.  [Dispatch Source操作源]( ) 
-  2.  [Parse-iOS-SDK介绍](Parse-iOS-SDK介绍) 
+ 1.  Dispatch Source操作源
+  2.  [Parse-iOS-SDK介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-ios-sdk介绍) 
 
   2.  [Parse 的“离线存储对象”操作介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-的离线存储对象操作介绍) 
   2.  [Parse 的“离线存储对象”实现介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-的离线存储对象实现介绍) 
