@@ -3,26 +3,69 @@
 
 # Parse源码浅析系列（一）---Parse的底层多线程处理思路：GCD高级用法
 
-第一篇的目的是通过解读 Parse 源码来展示GCD两个高级用法： `Dispatch Source ` （派发源）和 `Dispatch Semaphore`  （信号量），并将思路浓缩为可运行的6个 Demo 中，详见仓库里的 Demo1到 Demo6。
+【前言】从iOS7升到iOS8后，GCD 出现了一个重大的变化：在 iOS7 时，使用 GCD 的并行队列，  `dispatch_async`  最大开启的线程一直能控制在6、7条，线程数都是个位数，然而 iOS8后，最大线程数一度可以达到40条、50条。然而在文档上并没有对这一做法的目的进行介绍。
 
- [《iOS开发周报：iOS 8.4.1 发布，iOS 8 时代谢幕》](http://www.infoq.com/cn/news/2015/08/ios-weekly-ios841#rd) 有这样一段介绍：
+笔者推测 Apple 的目的是想借此让开发者使用 `NSOperationQueue` ：GCD 中 Apple 并没有提供控制并发数量的接口，而  `NSOperationQueue`  有。GCD 没有提供暂停、恢复、取消队列任务的接口，而  `NSOperationQueue`  有，如果想让 GCD 支持 `NSOperationQueue` 原生就支持的功能，需要使用许多GCD 的高级功能，大大提高了使用的难度。
+
+
+ `Apple`  始终有一个观念：尽可能选用高层 API，只在确有必要时才求助于底层。然而开发者并不买账，在我进行的一次 [调查](http://weibo.com/1692391497/D1pKjqaiW?type=comment) 中发现了一个有趣的现象：
+
+大概 80%的iOS 开发者会支持使用 GCD 来完成操作队列的实现，而且有 60% 的开发已经在项目中使用。
+
+![enter image description here](http://i65.tinypic.com/2vj1md2.jpg)
+
+
+这种现象一直存在，包括 ARC 与 MRC、SB建 UI 与纯代码建 UI、SQL 与 CoreData。
+
+今天先不谈究竟该如何选择，既然 GCD 的支持者如此之多，那么就谈一谈如何让 GCD 能支持 `NSOperationQueue` 原生就支持的功能。毕竟完成功能是程序员的第一任务。
+
+
+
+
+第一篇的目的是通过解读 Parse 源码来展示GCD两个高级用法： `Dispatch Source ` （派发源）和 `Dispatch Semaphore`  （信号量）。首先通过Parse 的“离线存储对象”操作，来介绍 `Dispatch Source ` （派发源）；然后通过Parse 的单元测试中使用的技巧“强制把异步任务转换为同步任务来方便进行单元测试”来介绍`Dispatch Semaphore`  （信号量）。我已将思路浓缩为可运行的7个 Demo 中，详见仓库里的 Demo1到 Demo7。
+
+
+ 1.  [Dispatch Source操作源]( ) 
+  2.  [Parse-iOS-SDK介绍](Parse-iOS-SDK介绍) 
+
+  2.  [Parse 的“离线存储对象”操作介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-的离线存储对象操作介绍) 
+  2.  [Parse 的“离线存储对象”实现介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-的离线存储对象实现介绍) 
+
+     1.  [第一步：创建一个Dispatch Source](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第一步创建一个dispatch-source) 
+     2.  [第二步：创建Dispatch Source的事件处理方法](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第二步创建dispatch-source的事件处理方法) 
+     3.  [第三步：处理Dispatch Source的暂停与恢复操作](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第三步处理dispatch-source的暂停与恢复操作) 
+     4.  [第四步：向Dispatch Source发送事件](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第四步向dispatch-source发送事件) 
+  2.  [GCD真的不能像OperationQueue那样终止任务？](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#gcd真的不能像operationqueue那样终止任务) 
+  2.  [完整例子Demo1：让 Dispatch Source “帮” Dispatch Queue 实现暂停和恢复功能](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#完整例子demo1让-dispatch-source-帮-dispatch-queue-实现暂停和恢复功能) 
+  2.  [DispatchSource能通过合并事件的方式确保在高负载下正常工作](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#dispatchsource能通过合并事件的方式确保在高负载下正常工作) 
+  2.  [Dispatch Source 与 Dispatch Queue 两者在线程执行上的关系](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#dispatch-source-与-dispatch-queue-两者在线程执行上的关系) 
+  2.  [让 Dispatch Source 与 Dispatch Queue 同时实现暂停和恢复](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#让-dispatch-source-与-dispatch-queue-同时实现暂停和恢复) 
+  2.  [Parse “离线存储对象”操作的代码摘录](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-离线存储对象操作的代码摘录) 
+ 2.  [Dispatch Semaphore 信号量](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#dispatch-semaphore-信号量) 
+  1.  [在项目中的应用：强制把异步任务转换为同步任务来方便进行单元测试](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#在项目中的应用强制把异步任务转换为同步任务来方便进行单元测试) 
+
+
+
+## Parse-iOS-SDK介绍
+
+
+ [《iOS开发周报：iOS 8.4.1 发布，iOS 8 时代谢幕》](http://www.infoq.com/cn/news/2015/08/ios-weekly-ios841#rd) 对 Facebook 旗下的 Parse有这样一段介绍：
 
  > Parse-SDK-iOS-OSX：著名的 BaaS 公司 Parse 最近开源了它们的 iOS/OSX SDK。Parse 的服务虽然在国内可能访问速度不是很理想，但是它们在服务的稳定性和 SDK 质量上一直有非常优异的表现。此次开源的 SDK 对于日常工作是 SDK 开发的开发者来说，是一个难得的学习机会。Parse 的存取操作涉及到很多多线程的问题，从 Parse SDK 的源代码中可以看出，这个 SDK 的开发者对 iOS 开发多线程有着非常深厚的理解和功底，让人叹服。我个人推荐对此感兴趣的朋友可以尝试从阅读 internal 文件夹下的两个EventuallyQueue 文件开始着手，研究下 Parse 的底层多线程处理思路。
 
 类似的服务：
- [《Cloud​Kit》](http://nshipster.cn/cloudkit/) 
-
-Apple 的 CloudKit、Facebook 的 Parse、中国的 LeanCloud （原名 AVOS）
+ Apple 的 [Cloud​Kit](http://nshipster.cn/cloudkit/) 、 国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) 。
 
 ## Parse 的“离线存储对象”操作介绍
 
-大多数保存功能可以立刻执行，并通知应用“保存完毕”。不过若不需要知道保存完成的时间，则可使用Parse 的“离线存储对象”操作（saveEventually 或 deleteEventually） 来代替，也就是：
 
-如果用户目前尚未接入网络，Parse “离线存储对象”操作（saveEventually 或 deleteEventually） 会缓存设备中的数据，并在网络连接恢复后上传。如果应用在网络恢复之前就被关闭了，那么当它下一次打开时，SDK 会自动再次尝试保存操作。
+大多数保存功能可以立刻执行，并通知应用“保存完毕”。不过若不需要知道保存完成的时间，则可使用“离线存储对象”操作（saveEventually 或 deleteEventually） 来代替，也就是：
+
+如果用户目前尚未接入网络，“离线存储对象”操作（saveEventually 或 deleteEventually） 会缓存设备中的数据，并在网络连接恢复后上传。如果应用在网络恢复之前就被关闭了，那么当它下一次打开时，SDK 会自动再次尝试保存操作。
 
 所有 saveEventually（或 deleteEventually）的相关调用，将按照调用的顺序依次执行。因此，多次对某一对象使用 saveEventually 是安全的。
 
-国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) 也提供了相同的功能：详见[《LeanCloud官方文档-iOS / OS X 数据存储开发指南--离线存储对象》](https://leancloud.cn/docs/ios_os_x_guide.html#离线存储对象) 
+国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) 也提供了相同的功能，所以以上《Parse 的“离线存储对象”操作介绍》部分完全摘录自 LeanCloud 的文档。详见[《LeanCloud官方文档-iOS / OS X 数据存储开发指南--离线存储对象》](https://leancloud.cn/docs/ios_os_x_guide.html#离线存储对象) 
 
 （利益相关声明：本人目前就职于 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) ）
 
@@ -46,6 +89,8 @@ GCD中除了主要的 `Dispatch Queue` 外，还有不太引人注目的 `Dispat
  > 简单地说，这种事件是由你调用 `dispatch_source_merge_data` 函数来向自己发出的信号。
 
 下面介绍下使用步骤：
+
+## `Dispatch Source` 的使用步骤
 
 ### 第一步：创建一个`Dispatch Source`
 
@@ -836,6 +881,55 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 耐心的极限时间 | 超时时间 |  `dispatch_semaphore_wait`  |
 逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  |
 
+### 使用`Dispatch Semaphore`控制并发线程数量
+
+正如文章开头所说：从 iOS7 升到 iOS8 后，GCD 出现了一个重大的变化：在 iOS7 时，使用 GCD 的并行队列，  `dispatch_async`  最大开启的线程一直能控制在6、7条，线程数都是个位数，然而 iOS8后，最大线程数一度可以达到40条、50条。然而在文档上并没有对这一做法的目的进行介绍。
+
+笔者推测 Apple 的目的是想借此让开发者使用 `NSOperationQueue` ：GCD 中 Apple 并没有提供控制并发数量的接口，而  `NSOperationQueue`  有，如果需要使用 GCD 实现，需要使用许多GCD 的高级功能：`Dispatch Semaphore`信号量。
+
+
+详见 Demo7（Demo_07_展示dispatch_semaphore_t控制线程并发数量的用法）
+
+
+Demo7中使用了 [这篇博文](http://mp.weixin.qq.com/s?__biz=MzAxNDAzMzk0MQ==&amp;mid=203702345&amp;idx=1&amp;sn=226f6f784d37b89718f6949c9214e1e6&amp;scene=1&amp;srcid=kl2ZmcSfYHuB6bMvYPEq#rd) 中的例子。
+
+
+`Dispatch Semaphore`信号量的使用在上文中已经介绍过，那么就直接上 Demo：
+
+主要做的就是将上文中 `dispatch_semaphore_t` 的个数设置为一个可变参数：这样就达到了控制并行线程数量的目的：
+
+ ```Objective-C
+/*
+ *
+ 简单版本：无专门控制并发等待的线程，缺点阻塞主线程，可以跑一下 demo，你会发现主屏幕上的按钮是不可点击的
+ *
+ */
+void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount, dispatch_block_t block) {
+    //控制并发数的信号量
+    static dispatch_semaphore_t limitSemaphore;
+    //专门控制并发等待的线程
+
+    
+    //使用 dispatch_once而非 lazy 模式，防止可能的多线程抢占问题
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        limitSemaphore = dispatch_semaphore_create(limitSemaphoreCount);
+    });
+    
+
+        //可用信号量后才能继续，否则等待
+        dispatch_semaphore_wait(limitSemaphore, DISPATCH_TIME_FOREVER);
+        dispatch_async(queue, ^{
+            !block ? : block();
+            //在该工作线程执行完成后释放信号量
+            dispatch_semaphore_signal(limitSemaphore);
+        });
+
+}
+ ```
+
+
+你可能发现，这段代码有问题阻塞了当前线程，Demo7中也给出了改良版，可以看下。
 
 
 # 下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注

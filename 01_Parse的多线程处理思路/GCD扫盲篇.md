@@ -31,51 +31,60 @@ GCD提供了dispatch queues（调度队列）来执行代码段，这些队列�
 
 参考链接： [***Why can't we use a dispatch_sync on the current queue?***](http://stackoverflow.com/questions/10984732/why-cant-we-use-a-dispatch-sync-on-the-current-queue) 
 
-串行队列中的同步与异步的区别：
 
-Yes. Using serial queue ensure the serial execution of tasks. The only difference is that `dispatch_sync` only return after the block is finished whereas `dispatch_async` return after it is added to the queue and may not finished.
+## 串行队列中的同步与异步的区别
 
-for this code
+串行队列能确保顺序执行任务，他们两个的唯一区别在于`dispatch_sync`只会在 block 完全执行完之后返回，`dispatch_sync` 不能确保会在 block 完全执行完之后返回，唯一能确定的是会在被添加到queue 队列后返回。
+
+
+下面的代码：
 
     dispatch_async(_serialQueue, ^{ printf("1"); });
     printf("2");
     dispatch_async(_serialQueue, ^{ printf("3"); });
     printf("4");
 
-it may print `2413` or `2143` or `1234` but `1` always before `3`
+可能会打印 `2413` 、 `2143` 、 `1234` ，但有一点是可以确认的： `1` 总是在 `3` 之前。
 
-for this code
+可能的打印：
+
+
+ ```Objective-C
+1
+2
+3
+4
+
+----------
+
+2
+4
+1
+3
+
+1
+2
+3
+4
+
+----------
+2
+4
+1
+3
+ ```
+
+
+
+然而下面的代码：
 
     dispatch_sync(_serialQueue, ^{ printf("1"); });
     printf("2");
     dispatch_sync(_serialQueue, ^{ printf("3"); });
     printf("4");
 
-it always print `1234`
+总会打印：`1234`
 
 
 参考链接： [***Difference between dispatch_async and dispatch_sync on serial queue?***](http://stackoverflow.com/questions/19822700/difference-between-dispatch-async-and-dispatch-sync-on-serial-queue/19822753?stw=2#19822753) 
 
-
-1
-2
-3
-4
-
-----------
-
-2
-4
-1
-3
-
-1
-2
-3
-4
-
-----------
-2
-4
-1
-3
