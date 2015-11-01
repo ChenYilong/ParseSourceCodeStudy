@@ -15,14 +15,24 @@
 ![enter image description here](http://i65.tinypic.com/2vj1md2.jpg)
 
 
-这种现象一直存在，包括 ARC 与 MRC、SB建 UI 与纯代码建 UI、SQL 与 CoreData。
+更是有人这样表态：
+
+
+加入不让他用 GCD：
+
+
+![enter image description here](http://i66.tinypic.com/34g8qd1.jpg)
+
+这种现象一直存在，包括 ARC 与 MRC、SB建 UI 与纯代码建 UI、SQL 与 CoreData的争论。
 
 今天先不谈究竟该如何选择，既然 GCD 的支持者如此之多，那么就谈一谈如何让 GCD 能支持 `NSOperationQueue` 原生就支持的功能。毕竟完成功能是程序员的第一任务。
 
-
+（iOS开发学习交流群：512437027）
 
 
 第一篇的目的是通过解读 Parse 源码来展示GCD两个高级用法： `Dispatch Source ` （派发源）和 `Dispatch Semaphore`  （信号量）。首先通过Parse 的“离线存储对象”操作，来介绍 `Dispatch Source ` （派发源）；然后通过Parse 的单元测试中使用的技巧“强制把异步任务转换为同步任务来方便进行单元测试”来介绍`Dispatch Semaphore`  （信号量）。我已将思路浓缩为可运行的7个 Demo 中，详见仓库里的 Demo1到 Demo7。
+
+如果对 GCD 布什太熟悉，请先读下[《GCD 扫盲篇》](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/GCD扫盲篇.md)。
 
 
  1.  [Dispatch Source操作源]( ) 
@@ -43,7 +53,7 @@
   2.  [Parse “离线存储对象”操作的代码摘录](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-离线存储对象操作的代码摘录) 
  2.  [Dispatch Semaphore 信号量](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#dispatch-semaphore-信号量) 
   1.  [在项目中的应用：强制把异步任务转换为同步任务来方便进行单元测试](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#在项目中的应用强制把异步任务转换为同步任务来方便进行单元测试) 
-
+  2.  [使用Dispatch Semaphore控制并发线程数量](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#使用dispatch-semaphore控制并发线程数量) 
 
 
 ## Parse-iOS-SDK介绍
