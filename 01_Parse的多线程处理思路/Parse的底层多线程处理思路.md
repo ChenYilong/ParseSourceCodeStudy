@@ -25,7 +25,15 @@
 
 这种现象一直存在，包括 ARC 与 MRC、SB建 UI 与纯代码建 UI、SQL 与 CoreData的争论。
 
-今天先不谈究竟该如何选择，既然 GCD 的支持者如此之多，那么就谈一谈如何让 GCD 能支持 `NSOperationQueue` 原生就支持的功能。毕竟完成功能是程序员的第一任务。
+但是因为是源码解析的文章，而 Parse 的 SDK 没有用一句的 NSOperation 的代码，GCD 一路用到底，让我也十分震惊。只能说明，写  `Parse`  的这位开发者是艺高人胆大。而且既然  `GCD`  的支持者如此之多，那么就谈一谈如何让 GCD 能支持 `NSOperationQueue` 原生就支持的功能。
+
+
+今天虽然谈了NSOperation原生功能的 GCD 版本实现，但并不代表我支持像 Parse 这样 GCD 一路用到底。 业内一般的看法是这样的：
+
+
+ >  `GCD` 虽然能够实现暂停和终止，但开发还是灵活些好，那些 `NSOperation` 用起来方便的就直接用 `NSOperation` 的方式，不然苹果多包那一层不是蛋疼，包括文章里提到的 `iOS8` 后控制线程数的问题，不一定项目就一定要GCD一路到底。有时候需要支持一些高层级封装功能比如： `KVO` 时 `NSOperation` 还是有它的优势的。 `GCD` 反而是处理些比较简单的操作或者是较系统级的比如：监视进程或者监视文件夹内文件的变化之类的比较合适。
+
+
 
 （iOS开发学习交流群：512437027）
 
@@ -40,7 +48,7 @@
 
   2.  [Parse 的“离线存储对象”操作介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-的离线存储对象操作介绍) 
   2.  [Parse 的“离线存储对象”实现介绍](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#parse-的离线存储对象实现介绍) 
-
+  2.  [Dispatch Source 的使用步骤](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#dispatch-source-的使用步骤) 
      1.  [第一步：创建一个Dispatch Source](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第一步创建一个dispatch-source) 
      2.  [第二步：创建Dispatch Source的事件处理方法](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第二步创建dispatch-source的事件处理方法) 
      3.  [第三步：处理Dispatch Source的暂停与恢复操作](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#第三步处理dispatch-source的暂停与恢复操作) 
