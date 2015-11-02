@@ -918,6 +918,10 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 
 
 
+为了加深对dispatch_semaphore_t基本用法的理解，再给一个示例 Demo：
+
+思考下为何会如何打印：
+
 详见 Demo5（Demo_05_展示dispatch_semaphore_t基本用法）
 
  ```Objective-C
