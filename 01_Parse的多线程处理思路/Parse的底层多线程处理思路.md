@@ -697,6 +697,8 @@ dispatch_async(queue, ^{
  ```
 
 ![enter image description here](http://i61.tinypic.com/33m06er.jpg)
+
+
 详见 Demo4（Demo_04_对DispatchQueue实现取消恢复操作_综合版）
 
 
