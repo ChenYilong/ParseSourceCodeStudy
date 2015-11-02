@@ -196,6 +196,78 @@ dispatch_suspend(queue);
 dispatch_resume (source);
  ```
 
+为了方便理解 `dispatch_suspend` 函数的作用，这里提供一个 Demo：Demo3， 看下运行效果：
+
+思考下NSLog的打印顺序为什么会是这样？
+
+
+详见 Demo3（Demo_03_对DispatchQueue实现取消恢复操作_简单版）：
+
+
+ ```Objective-C
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    dispatch_queue_t queue1 = dispatch_queue_create("com.iOSChengXuYuan.queue1", 0);
+    dispatch_queue_t queue2 = dispatch_queue_create("com.iOSChengXuYuan.queue2", 0);
+    dispatch_group_t group = dispatch_group_create();
+    
+    dispatch_async(queue1, ^{
+        NSLog(@"任务 1 ： queue 1...");
+        sleep(1);
+        NSLog(@"✅完成任务 1");
+    });
+    
+    dispatch_async(queue2, ^{
+        NSLog(@"任务 1 ： queue 2...");
+        sleep(1);
+        NSLog(@"✅完成任务 2");
+    });
+    
+    dispatch_group_async(group, queue1, ^{
+        NSLog(@"🚫正在暂停 1");
+        dispatch_suspend(queue1);
+    });
+    dispatch_group_async(group, queue2, ^{
+        NSLog(@"🚫正在暂停 2");
+        dispatch_suspend(queue2);
+    });
+    
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+    NSLog(@"＝＝＝＝＝＝＝等待两个queue完成, 再往下进行...");
+    dispatch_async(queue1, ^{
+        NSLog(@"任务 2 ： queue 1");
+    });
+    dispatch_async(queue2, ^{
+        NSLog(@"任务 2 ： queue 2");
+    });
+    NSLog(@"🔴为什么这个NSLog会在上面两个NSLog之前打印❓❓答：dispatch_suspend的作用‼️");
+    
+    dispatch_resume(queue1);
+    dispatch_resume(queue2);
+}
+ ```
+
+打印：
+
+ ```Objective-C
+2015-09-06 02:44:59.614 CYLDispatchQueueSuspendTest[1610:116662] 任务 1 ： queue 2...
+2015-09-06 02:44:59.613 CYLDispatchQueueSuspendTest[1610:116665] 任务 1 ： queue 1...
+2015-09-06 02:45:00.614 CYLDispatchQueueSuspendTest[1610:116665] ✅完成任务 1
+2015-09-06 02:45:00.614 CYLDispatchQueueSuspendTest[1610:116662] ✅完成任务 2
+2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116662] 🚫正在暂停 2
+2015-09-06 02:45:00.615 CYLDispatchQueueSuspendTest[1610:116665] 🚫正在暂停 1
+2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116515] ＝＝＝＝＝＝＝等待两个queue完成, 再往下进行...
+2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116515] 🔴为什么这个NSLog会在上面两个NSLog之前打印❓❓答：dispatch_suspend的作用‼️
+2015-09-06 02:45:00.617 CYLDispatchQueueSuspendTest[1610:116665] 任务 2 ： queue 1
+2015-09-06 02:45:00.619 CYLDispatchQueueSuspendTest[1610:116665] 任务 2 ： queue 2
+ ```
+
+思考下NSLog的打印顺序为什么会是这样？答：dispatch_suspend的作用！
+
+详见 Demo3（Demo_03_对DispatchQueue实现取消恢复操作_简单版）。
+
+
 ### 第四步：向`Dispatch Source`发送事件
 
 恢复源后，就可以像下面的代码片段这样，通过 `dispatch_source_merge_data` 向分派源发送事件:
@@ -518,6 +590,7 @@ dispatch_resume (source);
 
 ### 让 Dispatch Source 与 Dispatch Queue 同时实现暂停和恢复
 
+本节代码详见 Demo4（Demo_04_对DispatchQueue实现取消恢复操作_综合版）
 
 你可能已经发现了：上面的代码是有问题的，它只是一种“假暂停”的状态。for 循环还是要执行100变，循环的次数并没有你的暂停而暂停，这在实际开发中是不允许的，因为真正的性能瓶颈永远会是在这里，这样的暂停毫无意义。那么如何让 for 循环随时可以暂停？
 
@@ -624,7 +697,7 @@ dispatch_async(queue, ^{
  ```
 
 ![enter image description here](http://i61.tinypic.com/33m06er.jpg)
-
+详见 Demo4（Demo_04_对DispatchQueue实现取消恢复操作_综合版）
 
 
 ## Parse “离线存储对象”操作的代码摘录
@@ -714,70 +787,6 @@ dispatch_async(queue, ^{
 
 为了展示作用，举个反例：
 
-详见 Demo3（Demo_03_对DispatchQueue实现取消恢复操作_简单版）：
-
-
- ```Objective-C
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    dispatch_queue_t queue1 = dispatch_queue_create("com.iOSChengXuYuan.queue1", 0);
-    dispatch_queue_t queue2 = dispatch_queue_create("com.iOSChengXuYuan.queue2", 0);
-    dispatch_group_t group = dispatch_group_create();
-    
-    dispatch_async(queue1, ^{
-        NSLog(@"任务 1 ： queue 1...");
-        sleep(1);
-        NSLog(@"✅完成任务 1");
-    });
-    
-    dispatch_async(queue2, ^{
-        NSLog(@"任务 1 ： queue 2...");
-        sleep(1);
-        NSLog(@"✅完成任务 2");
-    });
-    
-    dispatch_group_async(group, queue1, ^{
-        NSLog(@"🚫正在暂停 1");
-        dispatch_suspend(queue1);
-    });
-    dispatch_group_async(group, queue2, ^{
-        NSLog(@"🚫正在暂停 2");
-        dispatch_suspend(queue2);
-    });
-    
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    NSLog(@"＝＝＝＝＝＝＝等待两个queue完成, 再往下进行...");
-    dispatch_async(queue1, ^{
-        NSLog(@"任务 2 ： queue 1");
-    });
-    dispatch_async(queue2, ^{
-        NSLog(@"任务 2 ： queue 2");
-    });
-    NSLog(@"🔴为什么这个NSLog会在上面两个NSLog之前打印❓❓答：dispatch_suspend的作用‼️");
-    
-    dispatch_resume(queue1);
-    dispatch_resume(queue2);
-}
- ```
-
-打印：
-
- ```Objective-C
-2015-09-06 02:44:59.614 CYLDispatchQueueSuspendTest[1610:116662] 任务 1 ： queue 2...
-2015-09-06 02:44:59.613 CYLDispatchQueueSuspendTest[1610:116665] 任务 1 ： queue 1...
-2015-09-06 02:45:00.614 CYLDispatchQueueSuspendTest[1610:116665] ✅完成任务 1
-2015-09-06 02:45:00.614 CYLDispatchQueueSuspendTest[1610:116662] ✅完成任务 2
-2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116662] 🚫正在暂停 2
-2015-09-06 02:45:00.615 CYLDispatchQueueSuspendTest[1610:116665] 🚫正在暂停 1
-2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116515] ＝＝＝＝＝＝＝等待两个queue完成, 再往下进行...
-2015-09-06 02:45:00.616 CYLDispatchQueueSuspendTest[1610:116515] 🔴为什么这个NSLog会在上面两个NSLog之前打印❓❓答：dispatch_suspend的作用‼️
-2015-09-06 02:45:00.617 CYLDispatchQueueSuspendTest[1610:116665] 任务 2 ： queue 1
-2015-09-06 02:45:00.619 CYLDispatchQueueSuspendTest[1610:116665] 任务 2 ： queue 2
- ```
-
-
-
  ```Objective-C
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     NSMutableArray *array = [[NSMutableArray alloc] init];
@@ -820,11 +829,10 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 2015-09-07 00:42:52.734 CYLDispatchSemaphoreTest[10438:780505] 99949
  ```
 
-
+这种资源抢夺的情况，一般的做法是使用串行队列，或者像下面一样的同步队列，得以解决：
 
  ```Objective-C
  dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1) ;
     NSMutableArray *array = [[NSMutableArray alloc] init];
     for(int i = 0; i< 100000; ++i) {
         dispatch_sync(queue, ^{
@@ -834,7 +842,129 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
     }
     NSLog(@"%@", @([array count]));
  ```
-详见 Demo3（Demo_03_对DispatchQueue实现取消恢复操作_简单版）：
+
+下面展示下展示使用 `dispatch_semaphore_t` 的解决方案：
+
+
+
+ `dispatch_semaphore_t` 的作用之一就是解决这种资源抢夺的情况，下面展示下使用 `dispatch_semaphore_t` 实现一个资源锁：
+
+以下源码详见 Demo6（Demo_06_展示dispatch_semaphore_t基本用法）
+
+
+ ```Objective-C
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    //因为用到了dispatch_barrier_async，该函数只能搭配自定义并行队列dispatch_queue_t使用。所以不能使用：dispatch_get_global_queue
+    dispatch_queue_t queue = dispatch_queue_create("com.ioschengxuyuan.gcd.ForBarrier", DISPATCH_QUEUE_CONCURRENT);
+    /*
+     *
+     *生成Dispatch Semaphore
+     Dispatch Semaphore 的计数初始值设定为“1”
+     (该初始值的1与下文中两个函数dispatch_semaphore_wait与dispatch_semaphore_signal进行的减1、加1里的1没有必然联系。
+     
+     就算初始值是100，两个函数dispatch_semaphore_wait与dispatch_semaphore_signal还是会减“1”、加“1”)。
+     保证可访问 NSMutableArray 类对象的线程
+     同时只能有1个
+     *
+     */
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1) ;
+    NSMutableArray *array = [[NSMutableArray alloc] init];
+    for(int i = 0; i< 100000; ++i) {
+        dispatch_async(queue, ^{
+            /*
+             *
+             *等待Dispatch Semaphore
+             *一直等待，直到Dispatch Semaphore的计数值达到大于等于1
+             */
+            dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER) ;
+            /*
+             *由于Dispatch Semaphore的计数值达到大于等于1
+             *所以将Dispatch Semaphore的计数值减去1
+             *dispatch_semaphore_wait 函数执行返回。
+             *即执行到此时的
+             *Dispatch Semaphore 的计数值恒为0
+             *
+             *由于可访问NSMutaleArray类对象的线程
+             *只有一个
+             *因此可安全地进行更新
+             *
+             */
+            NSLog(@"🔴%@",[NSThread currentThread]);
+            [array addObject:[NSNumber numberWithInt:i]];
+            /*
+             *
+             *排他控制处理结束，
+             *所以通过dispatch_semaphore_signal函数
+             *将Dispatch Semaphore的计数值加1
+             *如果有通过dispatch_semaphore_wait函数
+             *等待Dispatch Semaphore的计数值增加的线程，
+             ★就由最先等待的线程执行。
+             */
+            dispatch_semaphore_signal(semaphore);
+        });
+    }
+    /*
+     *
+     等为数组遍历添加元素后，检查下数组的成员个数是否正确
+     *
+     */
+    dispatch_barrier_async(queue, ^{
+        NSLog(@"🔴类名与方法名：%s（在第%d行），描述：%@", __PRETTY_FUNCTION__, __LINE__, @([array count]));
+    });
+}
+ ```
+
+
+
+
+详见 Demo5（Demo_05_展示dispatch_semaphore_t基本用法）
+
+ ```Objective-C
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+//    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
+    
+    dispatch_time_t time = dispatch_time(DISPATCH_TIME_NOW, 1ull * NSEC_PER_SEC);//等待一秒
+    //dispatch_time_t time = DISPATCH_TIME_FOREVER;//永久等待
+    NSLog(@"begin ==>  车库开始营业了！");
+    /*
+     *
+     如果 semphore 的值等于0，就阻塞1秒钟，才会往下照常进行；
+     如果大于等于1则往下进行并将 semphore 进行减1处理。
+     *
+     */
+    long result = dispatch_semaphore_wait(semaphore, time);
+    if (result == 0) {
+        /*
+         *
+         *由子Dispatch Semaphore的计数值达到大于等于1
+         *或者在待机中的指定时间内
+         *Dispatch Semaphore的计数值达到大于等于1
+         所以Dispatch Semaphore的计数值减去1
+         可执行需要进行排他控制的处理.
+         可以理解为：没有阻塞的线程了。
+         就好比：车库有一个或一个以上的车位，只来了一辆车，所以“无需等待”
+         *
+         */
+        NSLog(@"result = 0 ==> 有车位，无需等待！==> 在这里可安全地执行【需要排他控制的处理（比如只允许一条线程为mutableArray进行addObj操作）】");
+        dispatch_semaphore_signal(semaphore);//使用signal以确保编译器release掉dispatch_semaphore_t时的值与初始值一致， 否则会EXC_BAD_INSTRUCTION ,见http://is.gd/EaJgk5
+    } else {
+        /*
+         *
+         *由于Dispatch Semaphore的计数值为0
+         .因此在达到指定时间为止待机
+         这个else里发生的事情，就好比：车库没车位，来了一辆车，等待了半个小时后，做出的一些事情。
+         比如：忍受不了，走了。。
+         *
+         */
+        NSLog(@"result != 0 ==> timeout，deadline，忍受不了，走了。。");
+        
+    }
+}
+ ```
 
 
 ### 在项目中的应用：强制把异步任务转换为同步任务来方便进行单元测试
@@ -898,6 +1028,7 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 车 | 线程 | 代码 |
 耐心的极限时间 | 超时时间 |  `dispatch_semaphore_wait`  |
 逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  |
+
 
 ### 使用`Dispatch Semaphore`控制并发线程数量
 
