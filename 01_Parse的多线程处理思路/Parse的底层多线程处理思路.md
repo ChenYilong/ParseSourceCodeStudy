@@ -507,7 +507,7 @@ dispatch_resume (source);
 
  ```
 
-耗时：0.14秒，与之前的2.376秒相比，时间是后者的17倍 ，性能相差达很大。
+耗时：0.14秒，与之前的2.376秒相比，时间是后者的17倍 ，性能相差很大。
 
 ###  DispatchSource能通过合并事件的方式确保在高负载下正常工作
 
@@ -592,7 +592,7 @@ dispatch_resume (source);
 
 本节代码详见 Demo4（Demo_04_对DispatchQueue实现取消恢复操作_综合版）
 
-你可能已经发现了：上面的代码是有问题的，它只是一种“假暂停”的状态。for 循环还是要执行100变，循环的次数并没有你的暂停而暂停，这在实际开发中是不允许的，因为真正的性能瓶颈永远会是在这里，这样的暂停毫无意义。那么如何让 for 循环随时可以暂停？
+你可能已经发现了：上面的代码是有问题的，它只是一种“假暂停”的状态。for 循环还是要执行100遍，循环的次数并没有因你暂停了派发源而暂停，这在实际开发中是不允许的，因为真正的性能瓶颈永远会是在这里，这样的暂停毫无意义。那么如何让 for 循环随时可以暂停？
 
 实际上 `Dispatch Queue` 没有“取消”这一概念。一旦将处理追加到 `Dispatch Queue` 中，就没有方法可将该处理去除，也没有方法可在执行中取消该处理。编程人员要么在处理中导入取消这一概念。
 
@@ -712,7 +712,7 @@ dispatch_async(queue, ^{
     });
  ```
 
-何时会调用句柄？ 下面将 Parse 里涉及调用句柄的语句罗列一下， 因为摘录的代码不完整，可能并不能看出使用的方法。所以可以大致预览一下，详情可以查看Parse 源码，并且我已将这些逻辑浓缩为可运行的 Demo，也可搭配理解。
+何时会调用句柄？ 下面将 Parse 里涉及调用句柄的语句罗列一下， 因为摘录的代码不完整，可能并不能看出使用的完整过程。所以可以大致预览一下，详情可以查看Parse 源码，并且我已将这些逻辑浓缩为可运行的 Demo，也可搭配理解。
 
  ```Objective-C
 - (void)start {
@@ -923,7 +923,7 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 为了加深对dispatch_semaphore_t基本用法的理解，再给一个示例 Demo：
 
 思考下为何会如何打印：
-然后把分别试一下第三行和第四行：
+然后再分别试一下第三行和第四行：
 
 
  ```Objective-C
@@ -1036,21 +1036,21 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 
 这个比喻里可以用一个表格来表示：
 
-喻体 | 本体 |  代码 | 解释
--------------|-------------|-------------|-------------
-车位 | 信号量 |  `dispatch_semaphore_t`  |
-剩余几个车位 | 最大并发线程 |  `dispatch_semaphore_t`  |
-看门人起的作用 | 信号量的作用 | `dispatch_semaphore_t`  |
-车 | 线程 | 代码 |
-耐心的极限时间 | 超时时间 |  `dispatch_semaphore_wait`  |
-逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  |
+喻体 | 本体 |  代码 |
+-------------|-------------|-------------
+车位 | 信号量 |  `dispatch_semaphore_t`  
+剩余几个车位 | 最大并发线程 |  `dispatch_semaphore_t`  
+看门人起的作用 | 信号量的作用 | `dispatch_semaphore_t`  
+车 | 线程 | 代码 
+耐心的极限时间 | 超时时间 |  `dispatch_semaphore_wait`  
+逛街结束走了，离开车位 | signal+1 |  `dispatch_semaphore_signal`  
 
 
 ### 使用`Dispatch Semaphore`控制并发线程数量
 
 正如文章开头所说：从 iOS7 升到 iOS8 后，GCD 出现了一个重大的变化：在 iOS7 时，使用 GCD 的并行队列，  `dispatch_async`  最大开启的线程一直能控制在6、7条，线程数都是个位数，然而 iOS8后，最大线程数一度可以达到40条、50条。然而在文档上并没有对这一做法的目的进行介绍。
 
-笔者推测 Apple 的目的是想借此让开发者使用 `NSOperationQueue` ：GCD 中 Apple 并没有提供控制并发数量的接口，而  `NSOperationQueue`  有，如果需要使用 GCD 实现，需要使用许多GCD 的高级功能：`Dispatch Semaphore`信号量。
+笔者推测 Apple 的目的是想借此让开发者使用 `NSOperationQueue` ：GCD 中 Apple 并没有提供控制并发数量的接口，而  `NSOperationQueue`  有，如果需要使用 GCD 实现，需要使用 GCD 的一项高级功能：`Dispatch Semaphore`信号量。
 
 
 详见 Demo7（Demo_07_展示dispatch_semaphore_t控制线程并发数量的用法）
@@ -1096,6 +1096,7 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
 
 你可能发现，这段代码有问题阻塞了当前线程，Demo7中也给出了改良版，可以看下。
 
+参考链接： [GitHub:Parse-SDK-iOS-OSX源码](https://github.com/ParsePlatform/Parse-SDK-iOS-OSX) 
 
 # 下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注
 
