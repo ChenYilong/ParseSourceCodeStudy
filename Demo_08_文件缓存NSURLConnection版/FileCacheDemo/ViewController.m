@@ -70,7 +70,6 @@ static NSString *const kLastModifiedImageURL = @"http://img1.2345.com/duoteimg/q
         NSLog(@"%@", self.etag);
         !completion ?: completion(data);
     }];
-    
 }
 
 @end
