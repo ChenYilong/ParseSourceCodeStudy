@@ -184,10 +184,10 @@ LastModifiedFromServer <= LastModifiedOnClient
     
     [NSURLConnection sendAsynchronousRequest:request queue:[NSOperationQueue mainQueue] completionHandler:^(NSURLResponse *response, NSData *data, NSError *connectionError) {
         
-        NSLog(@"%@ %tu", response, data.length);
+        // NSLog(@"%@ %tu", response, data.length);dd
         // 类型转换（如果将父类设置给子类，需要强制转换）
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        
+        NSLog(@"statusCode == %@", @(httpResponse.statusCode));
         // 判断响应的状态码是否是 304 Not Modified （更多状态码含义解释： https://github.com/ChenYilong/iOSDevelopmentTips）
         if (httpResponse.statusCode == 304) {
             NSLog(@"加载本地缓存图片");
@@ -201,7 +201,7 @@ LastModifiedFromServer <= LastModifiedOnClient
         // 获取并且纪录 etag，区分大小写
         self.etag = httpResponse.allHeaderFields[@"Etag"];
         
-        NSLog(@"%@", self.etag);
+        NSLog(@"etag值%@", self.etag);
         !completion ?: completion(data);
     }];
 }
@@ -210,7 +210,6 @@ LastModifiedFromServer <= LastModifiedOnClient
 相应的  `NSURLSession`  搭配 ETag 的版本见 Demo09：
 
 
- ```Objective-C
 /*!
  @brief 如果本地缓存资源为最新，则使用使用本地缓存。如果服务器已经更新或本地无缓存则从服务器请求资源。
  
@@ -231,13 +230,13 @@ LastModifiedFromServer <= LastModifiedOnClient
     if (self.etag.length > 0) {
         [request setValue:self.etag forHTTPHeaderField:@"If-None-Match"];
     }
-
+    
     [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         
-        NSLog(@"%@ %tu", response, data.length);
+        // NSLog(@"%@ %tu", response, data.length);
         // 类型转换（如果将父类设置给子类，需要强制转换）
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        
+        NSLog(@"statusCode == %@", @(httpResponse.statusCode));
         // 判断响应的状态码是否是 304 Not Modified （更多状态码含义解释： https://github.com/ChenYilong/iOSDevelopmentTips）
         if (httpResponse.statusCode == 304) {
             NSLog(@"加载本地缓存图片");
@@ -257,7 +256,10 @@ LastModifiedFromServer <= LastModifiedOnClient
         });
     }] resume];
 }
- ```
+
+运行效果：
+
+![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20151130/02/17338872420151130025013096.gif?454x255_110)
 
 
 Query

@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+
 typedef void (^GetDataCompletion)(NSData *data);
 
 static NSString *const kETagImageURL = @"http://hiphotos.baidu.com/harvey7/pic/item/c78f9cff8a136327e7256bab918fa0ec0afac7c6.jpg";
@@ -19,6 +20,13 @@ static NSString *const kLastModifiedImageURL = @"http://img1.2345.com/duoteimg/q
 @end
 
 @implementation ViewController
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [super didReceiveMemoryWarning];
+    [self getData:^(NSData *data) {
+        self.iconView.image = [UIImage imageWithData:data];
+    }];
+}
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
@@ -47,13 +55,13 @@ static NSString *const kLastModifiedImageURL = @"http://img1.2345.com/duoteimg/q
     if (self.etag.length > 0) {
         [request setValue:self.etag forHTTPHeaderField:@"If-None-Match"];
     }
-
+    
     [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         
-        NSLog(@"%@ %tu", response, data.length);
+        // NSLog(@"%@ %tu", response, data.length);
         // 类型转换（如果将父类设置给子类，需要强制转换）
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        
+        NSLog(@"statusCode == %@", @(httpResponse.statusCode));
         // 判断响应的状态码是否是 304 Not Modified （更多状态码含义解释： https://github.com/ChenYilong/iOSDevelopmentTips）
         if (httpResponse.statusCode == 304) {
             NSLog(@"加载本地缓存图片");

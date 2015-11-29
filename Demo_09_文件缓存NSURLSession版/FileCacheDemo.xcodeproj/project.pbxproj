@@ -11,7 +11,6 @@
 		9A9E898C1C0951600007AC42 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9A9E89821C0951600007AC42 /* LaunchScreen.xib */; };
 		9A9E898D1C0951600007AC42 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9A9E89841C0951600007AC42 /* Main.storyboard */; };
 		9A9E898E1C0951600007AC42 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9A9E89861C0951600007AC42 /* Images.xcassets */; };
-		9A9E898F1C0951600007AC42 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9A9E89871C0951600007AC42 /* Info.plist */; };
 		9A9E89901C0951600007AC42 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A9E89881C0951600007AC42 /* main.m */; };
 		9A9E89911C0951600007AC42 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A9E898A1C0951600007AC42 /* ViewController.m */; };
 /* End PBXBuildFile section */
@@ -135,7 +134,7 @@
 		18A44A221B25231C00BC0772 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0630;
+				LastUpgradeCheck = 0710;
 				ORGANIZATIONNAME = heima;
 				TargetAttributes = {
 					18A44A291B25231C00BC0772 = {
@@ -171,7 +170,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9A9E898F1C0951600007AC42 /* Info.plist in Resources */,
 				9A9E898E1C0951600007AC42 /* Images.xcassets in Resources */,
 				9A9E898C1C0951600007AC42 /* LaunchScreen.xib in Resources */,
 				9A9E898D1C0951600007AC42 /* Main.storyboard in Resources */,
@@ -256,6 +254,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -322,6 +321,7 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				INFOPLIST_FILE = FileCacheDemo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.itheima.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = FileCacheDemo;
 			};
 			name = Debug;
@@ -333,6 +333,7 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				INFOPLIST_FILE = FileCacheDemo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.itheima.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = FileCacheDemo;
 			};
 			name = Release;
