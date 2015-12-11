@@ -10,8 +10,8 @@
 
 typedef void (^GetDataCompletion)(NSData *data);
 
-static NSString *const kETagImageURL = @"http://hiphotos.baidu.com/harvey7/pic/item/c78f9cff8a136327e7256bab918fa0ec0afac7c6.jpg";
-static NSString *const kLastModifiedImageURL = @"http://img1.2345.com/duoteimg/qqTxImg/2013/12/ka_3/04-054658_103.jpg";
+static NSString *const kETagImageURL = @"http://ac-g3rossf7.clouddn.com/xc8hxXBbXexA8LpZEHbPQVB.jpg";
+static NSString *const kLastModifiedImageURL = @"http://image17-c.poco.cn/mypoco/myphoto/20151211/16/17338872420151211164742047.png";
 
 @interface ViewController ()
 @property (weak, nonatomic) IBOutlet UIImageView *iconView;

@@ -84,15 +84,31 @@ NSURLCache *urlCache = [[NSURLCache alloc] initWithMemoryCapacity:4 * 1024 * 102
 
 ### 文件缓存：借助ETag或Last-Modified判断文件缓存是否有效
 
-服务器的file存贮，虽然建议如果每个资源变动后，就重新生成一个链接。但也不排除使用同一个链接。那么如果服务端的file更改了，本地已经有了缓存。如何更新缓存？
-这种情况下需要借助ETag或Last-Modified判断图片缓存是否有效。
 
 
- `Last-Modified` 是资源最后修改的时间戳，ETag 是什么？是一个 hash 值，做 Request 缓存请求头，每一个资源文件都对应一个唯一的 ETag 值，修改资源文件后该值会立即变更。
+服务器的文件存贮，大多采用资源变动后就重新生成一个链接的做法。而且如果你的文件存储采用的是第三方的服务，比如七牛、青云等服务，则一定是如此。
+
+这种做法虽然是推荐做法，但同时也不排除不同文件使用同一个链接。那么如果服务端的file更改了，本地已经有了缓存。如何更新缓存？
+
+这种情况下需要借助 `ETag` 或 `Last-Modified` 判断图片缓存是否有效。
+
+ `Last-Modified` 顾名思义，是资源最后修改的时间戳，往往与缓存时间进行对比来判断缓存是否过期，判断方法：
+
+ ```Objective-C
+    BOOL isTooOld = NO;
+    NSDate *lastModified = [ClassName lastModified];
+    if ([[NSDate date] timeIntervalSinceDate:lastModified] > maxCacheAge) {
+        isTooOld = YES;
+    }
+ ```
+
+
+
+ `ETag`  是什么？是一个 hash 值，用作 Request 缓存请求头，每一个资源文件都对应一个唯一的  `ETag`  值，修改资源文件后该值会立即变更。
 
 * `If-None-Match` - 与响应头的 Etag 相对应，可以判断本地缓存数据是否发生变化
 
-步骤用伪代码表示：
+判断方法用伪代码表示：
 
  ```Objective-C
 if ETagFromServer != ETagOnClient || LastModifiedFromServer != LastModifiedOnClient
@@ -121,11 +137,24 @@ LastModifiedFromServer <= LastModifiedOnClient
 
  参考链接：[ ***What takes precedence: the ETag or Last-Modified HTTP header?*** ](http://stackoverflow.com/a/824209/3395008) 
 
-`ETag` 是首选，因为使用 `ETag ` 后，非常“省流量”：服务端不会每次都会返回文件资源。客户端每次向服务端发送上次服务器返回的 `ETag ` 值，服务器会根据客户端与服务端的  `ETag ` 值是否相等，来决定是否返回 data，同时总是返回对应的 `HTTP` 状态码。客户端通过 `HTTP` 状态码来决定是否使用缓存。比如：服务端与客户端的 `ETag` 值相等，则 `HTTP` 状态码为304，不返回 data。服务端文件一旦修改，服务端与客户端的 `ETag` 值不等，并且状态值会变为200，同时返回 data。
+`ETag` 是首选，因为使用 `ETag ` 后，非常“省流量”：服务端不会每次都会返回文件资源。客户端每次向服务端发送上次服务器返回的 `ETag ` 值，服务器会根据客户端与服务端的  `ETag ` 值是否相等，来决定是否返回 data，同时总是返回对应的 `HTTP` 状态码。客户端通过 `HTTP` 状态码来决定是否使用缓存。比如：服务端与客户端的 `ETag` 值相等，则 `HTTP` 状态码为 304，不返回 data。服务端文件一旦修改，服务端与客户端的 `ETag` 值不等，并且状态值会变为200，同时返回 data。
+
+七牛等第三方文件存储商现在都已经支持`ETag`，Demo8和9 中 给出的演示图片就是使用的七牛的服务，见：
 
 
+ ```Objective-C
+static NSString *const kETagImageURL = @"http://ac-g3rossf7.clouddn.com/xc8hxXBbXexA8LpZEHbPQVB.jpg";
+ ```
 
-虽然  `ETag`  是首选的方式，但并非所有服务端都会支持，而 `Last-Modified` 则一般都会有该字段。 AFNetworking 对该现状的处理方式是，判断服务端是否包含 `ETag` ，然后再进行相应处理。可见  `AFHTTPRequestOperation`  类中的用法:
+虽然  `ETag`  是首选的方式，优于 `Last-Modified` 方式，但并非所有服务端都会支持，而 `Last-Modified` 则一般都会有该字段。 大多数情况下需要与服务端进行协调支持 `ETag`  ，如果协商无果就只能退而求其次。
+
+Demo 也给出了一个不支持 `ETag` 的链接，基本随便找一张图片都行：
+
+ ```Objective-C
+static NSString *const kLastModifiedImageURL = @"http://img1.2345.com/duoteimg/qqTxImg/2013/12/ka_3/04-054658_103.jpg";
+ ```
+
+作为通用型的网络请求工具 AFNetworking 对该现状的处理方式是，判断服务端是否包含 `ETag` ，然后再进行相应处理。可见  `AFHTTPRequestOperation`  类中的用法:
 
  ```Objective-C
 - (void)pause {
@@ -150,7 +179,7 @@ LastModifiedFromServer <= LastModifiedOnClient
 
 下面使用一个 Demo 来进行演示用法，
 
-以 `NSURLConnection` 搭配 ETag为例，步骤如下：
+以 `NSURLConnection` 搭配  `ETag` 为例，步骤如下：
 
 * 请求的缓存策略使用 `NSURLRequestReloadIgnoringCacheData`，忽略本地缓存
 * 服务器响应结束后，要记录 `Etag`，服务器内容和本地缓存对比是否变化的重要依据
@@ -210,6 +239,8 @@ LastModifiedFromServer <= LastModifiedOnClient
 相应的  `NSURLSession`  搭配 ETag 的版本见 Demo09：
 
 
+
+ ```Objective-C
 /*!
  @brief 如果本地缓存资源为最新，则使用使用本地缓存。如果服务器已经更新或本地无缓存则从服务器请求资源。
  
@@ -256,16 +287,30 @@ LastModifiedFromServer <= LastModifiedOnClient
         });
     }] resume];
 }
+ ```
+
 
 运行效果：
 
 ![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20151130/02/17338872420151130025013096.gif?454x255_110)
+
+回顾下思路：
+
+ - 为资源分派 hash 值，然后对比服务端与本地缓存是否一致来决定是否需要更新缓存。
+
+这种思路，在开发中经常使用，比如：处于安全考虑，登陆操作一般不会传输账号密码，而是传输对应的 hash 值-- token ，这里的 token 就可以看做一个 file 资源，如果想让一个用户登陆超时时间是三天，只需要在服务端每隔三天更改下 token 值，客户端与服务端值不一致，然后服务端返回 token 过期的提示。
+
+
+ `PFRESTUserCommand` 中使用
 
 
 Query
 基于查询条件、
  `PFFile` 
  `PFObjectFileCodingLogic` 上传文件
+
+
+使用  `PFQueryState` 表示查询条件包含排序、缓存策略等，
 
 ## 离线存储
 ### 概述
