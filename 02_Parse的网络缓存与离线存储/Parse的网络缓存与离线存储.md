@@ -9,7 +9,7 @@
 
 缓存有不同的分类方法：
 
-![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20151128/23/17338872420151128233958031.png?323x214_130)
+![enter image description here](http://i67.tinypic.com/3097yvc.jpg)
 
 
 这里所指的缓存，是一个宽泛的概念。
@@ -17,8 +17,7 @@
 我们这里主要按照功能进行划分：
 
 
-![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20151129/00/17338872420151129000650023.png?369x179_130
-)
+![enter image description here](http://i66.tinypic.com/r6wrgx.jpg)
 
 -| 第一种 |第二种
 -------------|-------------|-------------
@@ -316,7 +315,7 @@ static NSString *const kLastModifiedImageURL = @"http://img1.2345.com/duoteimg/q
 
 运行效果：
 
-![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20151130/02/17338872420151130025013096.gif?454x255_110)
+![enter image description here](http://i68.tinypic.com/3yhhx.jpg)
 
 回顾下思路：
 
