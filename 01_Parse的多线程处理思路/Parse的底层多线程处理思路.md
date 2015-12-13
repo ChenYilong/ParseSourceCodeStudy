@@ -809,7 +809,7 @@ dispatch_async(queue, ^{
 
  1. 第一次：崩溃。。。
 
- ![enter image description here](http://image17-c.poco.cn/mypoco/myphoto/20150907/00/17338872420150907004449062.png)
+ ![enter image description here](http://i67.tinypic.com/29vxt9w.jpg)
 
 
  ```Objective-C
