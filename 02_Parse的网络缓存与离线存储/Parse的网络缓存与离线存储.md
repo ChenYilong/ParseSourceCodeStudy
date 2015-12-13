@@ -85,6 +85,7 @@ NSURLCache *urlCache = [[NSURLCache alloc] initWithMemoryCapacity:4 * 1024 * 102
 ### 文件缓存：借助ETag或Last-Modified判断文件缓存是否有效
 
 
+#### Last-Modified
 
 服务器的文件存贮，大多采用资源变动后就重新生成一个链接的做法。而且如果你的文件存储采用的是第三方的服务，比如七牛、青云等服务，则一定是如此。
 
@@ -92,7 +93,26 @@ NSURLCache *urlCache = [[NSURLCache alloc] initWithMemoryCapacity:4 * 1024 * 102
 
 这种情况下需要借助 `ETag` 或 `Last-Modified` 判断图片缓存是否有效。
 
- `Last-Modified` 顾名思义，是资源最后修改的时间戳，往往与缓存时间进行对比来判断缓存是否过期，判断方法：
+
+ `Last-Modified` 顾名思义，是资源最后修改的时间戳，往往与缓存时间进行对比来判断缓存是否过期。
+
+   在浏览器第一次请求某一个URL时，服务器端的返回状态会是200，内容是你请求的资源，同时有一个Last-Modified的属性标记此文件在服务期端最后被修改的时间，格式类似这样：
+
+
+ ```Objective-C
+        Last-Modified: Fri, 12 May 2006 18:53:33 GMT
+ ```
+
+  客户端第二次请求此URL时，根据 HTTP 协议的规定，浏览器会向服务器传送 If-Modified-Since 报头，询问该时间之后文件是否有被修改过：
+
+
+ ```Objective-C
+        If-Modified-Since: Fri, 12 May 2006 18:53:33 GMT
+ ```
+
+   如果服务器端的资源没有变化，则自动返回 HTTP 304 （Not Changed.）状态码，内容为空，这样就节省了传输数据量。当服务器端代码发生改变或者重启服务器时，则重新发出资源，返回和第一次请求时类似。从而保证不向客户端重复发出资源，也保证当服务器有变化时，客户端能够得到最新的资源。
+
+判断方法：
 
  ```Objective-C
     BOOL isTooOld = NO;
@@ -103,10 +123,6 @@ NSURLCache *urlCache = [[NSURLCache alloc] initWithMemoryCapacity:4 * 1024 * 102
  ```
 
 
-
- `ETag`  是什么？是一个 hash 值，用作 Request 缓存请求头，每一个资源文件都对应一个唯一的  `ETag`  值，修改资源文件后该值会立即变更。
-
-* `If-None-Match` - 与响应头的 Etag 相对应，可以判断本地缓存数据是否发生变化
 
 判断方法用伪代码表示：
 
@@ -136,6 +152,14 @@ LastModifiedFromServer <= LastModifiedOnClient
 
 
  参考链接：[ ***What takes precedence: the ETag or Last-Modified HTTP header?*** ](http://stackoverflow.com/a/824209/3395008) 
+
+
+#### ETag
+
+ `ETag`  是什么？是一个 hash 值，用作 Request 缓存请求头，每一个资源文件都对应一个唯一的  `ETag`  值，修改资源文件后该值会立即变更。这也决定了 `ETag`  在断点下载时非常有用。
+
+* `If-None-Match` - 与响应头的 Etag 相对应，可以判断本地缓存数据是否发生变化
+
 
 `ETag` 是首选，因为使用 `ETag ` 后，非常“省流量”：服务端不会每次都会返回文件资源。客户端每次向服务端发送上次服务器返回的 `ETag ` 值，服务器会根据客户端与服务端的  `ETag ` 值是否相等，来决定是否返回 data，同时总是返回对应的 `HTTP` 状态码。客户端通过 `HTTP` 状态码来决定是否使用缓存。比如：服务端与客户端的 `ETag` 值相等，则 `HTTP` 状态码为 304，不返回 data。服务端文件一旦修改，服务端与客户端的 `ETag` 值不等，并且状态值会变为200，同时返回 data。
 
