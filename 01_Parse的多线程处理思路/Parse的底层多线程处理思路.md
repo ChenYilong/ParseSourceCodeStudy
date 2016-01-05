@@ -1119,18 +1119,92 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
 
 你可能发现，这段代码有问题阻塞了当前线程，Demo7中也给出了改良版，可以看下。
 
-### 为
+### 为  NSURLSession 添加同步方法
+
+NSURLSession 取消了同步方法，但是可以借助信号量来实现：
+
+ ```Objective-C
++ (NSData *)sendSynchronousRequest:(NSURLRequest *)request returningResponse:(NSURLResponse *__autoreleasing *)response error:(NSError *__autoreleasing *)error {
+    __block NSData *data = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *taskData, NSURLResponse *taskResponse, NSError *taskError) {
+        data = taskData;
+
+        if (response)
+            *response = taskResponse;
+
+        if (error)
+            *error = taskError;
+
+        dispatch_semaphore_signal(semaphore);
+    }] resume];
+
+    dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+
+    return data;
+}
+ ```
+
+但是也要思考下为什么 Apple 取消了同步方法：同步方法的风险远远超过受益。
 
 要注意：
 
- - 永远不要尝试在主线程上发送同步的网络请求
+ - 除非万不得已，否则永远不要尝试在主线程上发送同步的网络请求
+ - 尽量只在后台线程中独占线程发送同步的网络请求
 
- - 请只在后台线程中独占线程运行
 
-这样做的风险远远超过受益。
 
 风险如下所示：
 
+
+#### 导致Watchdog超时
+
+关于Watchdog超时：
+
+在  [ ***QA1693：Synchronous Networking On The Main Thread*** ]( https://developer.apple.com/library/ios/qa/qa1693/_index.html ) 
+文档中描述了Watchdog机制，包括生效场景和表现。如果我们的应用程序对一些特定的UI事件（比如启动、挂起、恢复、结束）响应不及时，Watchdog会把我们的应用程序干掉，并生成一份响应的crash报告。
+
+这份crash报告的有趣之处在于异常代码：“0x8badf00d”，即“ate bad food”。
+如果说特定的UI事件比较抽象，那么用代码来直接描述的话，对应的就是（创建一个工程时Xcode自动生成的）UIApplicationDelegate的几个方法：
+
+ ```Objective-C
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    return YES;
+}
+
+- (void)applicationWillResignActive:(UIApplication *)application {
+    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+    // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application {
+    // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application {
+    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+ ```
+
+所以当遇到Watchdog日志时，可以检查下上图几个方法是否有比较重的阻塞UI的动作。
+
+[ ***QA1693：Synchronous Networking On The Main Thread*** ]( https://developer.apple.com/library/ios/qa/qa1693/_index.html ) 举的例子就是在主线程进行同步网络请求。如果我们是在公司的Wifi环境下使用则一切顺利，但当应用程序发布出去面向很大范围的用户，在各种网络环境下运行，则不可避免地会出现一片Watchdog超时报告。
+另一种可能出现问题的场景就是数据量比较大的情况下进行的数据库版本迁移（同样是在主线程上）。
+
+
+#### 失去了 cancel 的机会：
+
+不能像异步那样进行下面的操作：
 
  ```Objective-C
 -(IBAction)cancelUpload:(id)sender {
@@ -1140,8 +1214,9 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
 }
  ```
 
+
+
  [《iOS应用的crash日志的分析基础》]( http://blog.csdn.net/jasonblog/article/details/19031517 ) 
- [ ***Synchronous Networking On The Main Thread*** ]( https://developer.apple.com/library/ios/qa/qa1693/_index.html ) 
 
 参考链接： [GitHub:Parse-SDK-iOS-OSX源码](https://github.com/ParsePlatform/Parse-SDK-iOS-OSX) 
 
