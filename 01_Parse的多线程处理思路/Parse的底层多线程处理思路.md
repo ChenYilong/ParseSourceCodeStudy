@@ -1005,6 +1005,30 @@ CYLDispatchSemaphoreTest(10384,0x112d43000) malloc: *** error for object 0x7f898
 
 强制把异步任务转换为同步任务来方便进行单元测试。这个用途信号量是最合适的用途。但注意并不推荐应用到除此之外的其它场景！
 
+这种异步转同步便于单元测试的用法类似于下面的写法：
+
+
+ ```Objective-C
+#define WAIT_FOREVER [self waitForStatus:XCTAsyncTestCaseStatusSucceeded timeout:DBL_MAX];
+#define NOTIFY [self notify:XCTAsyncTestCaseStatusSucceeded];
+ ```
+
+
+
+ ```Objective-C
+- (void)testInstallationMutated {
+    NSDictionary *dict = [self jsonWithFileName:@"TestInstallationSave"];
+    AVInstallation *installation = [AVInstallation currentInstallation];
+    [installation objectFromDictionary:dict];
+    [installation setObject:@(YES) forKey:@"enableNoDisturb"];
+    [installation saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        XCTAssertNil(error);
+        NOTIFY;
+    }];
+    WAIT;
+} 
+ ```
+
 信号量属性底层工具，他虽然非常强大，但在多数需要使用它的场合，最好从设计角度重新考虑，看是否可以不用，应该优先考虑使用诸如操作队列这样的高级工具。通常可以通过增加一个分派队列配合  `dispatch_suspend` ，或者通过其它方式分解操作来避免使用信号量。信号量并非不好，只是它本身是锁，能不使用就不用。尽量用 cocoa 框架中的高级抽象，信号量非常接近底层。所以除了上面的例子是最佳应用场景外，不推荐应用到除此之外的其它场景！
 
 
@@ -1093,8 +1117,31 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
 }
  ```
 
-
 你可能发现，这段代码有问题阻塞了当前线程，Demo7中也给出了改良版，可以看下。
+
+### 为
+
+要注意：
+
+ - 永远不要尝试在主线程上发送同步的网络请求
+
+ - 请只在后台线程中独占线程运行
+
+这样做的风险远远超过受益。
+
+风险如下所示：
+
+
+ ```Objective-C
+-(IBAction)cancelUpload:(id)sender {
+    if (_uploadTask.state == NSURLSessionTaskStateRunning) {
+        [_uploadTask cancel];
+    }
+}
+ ```
+
+ [《iOS应用的crash日志的分析基础》]( http://blog.csdn.net/jasonblog/article/details/19031517 ) 
+ [ ***Synchronous Networking On The Main Thread*** ]( https://developer.apple.com/library/ios/qa/qa1693/_index.html ) 
 
 参考链接： [GitHub:Parse-SDK-iOS-OSX源码](https://github.com/ParsePlatform/Parse-SDK-iOS-OSX) 
 
