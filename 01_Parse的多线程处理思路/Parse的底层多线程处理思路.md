@@ -62,7 +62,9 @@
  2.  [Dispatch Semaphore 信号量](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#dispatch-semaphore-信号量) 
   1.  [在项目中的应用：强制把异步任务转换为同步任务来方便进行单元测试](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#在项目中的应用强制把异步任务转换为同步任务来方便进行单元测试) 
   2.  [使用Dispatch Semaphore控制并发线程数量](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#使用dispatch-semaphore控制并发线程数量) 
-
+  3.  [为 NSURLSession 添加同步方法](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#为--nsurlsession-添加同步方法)
+     1.   [风险：导致Watchdog超时](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#导致watchdog超时) 
+     2.   [风险：失去了 cancel 的机会](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/Parse的底层多线程处理思路.md#失去了-cancel-的机会) 
 
 ## Parse-iOS-SDK介绍
 
