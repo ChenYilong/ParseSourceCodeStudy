@@ -571,7 +571,7 @@ dispatch_resume (source);
 
 本节配套代码在  `Demo2` 中（Demo_02_对DispatchSource实现取消恢复操作_global队列版）。
 
-答案是：没有关系。两者会独立运行。 Dispatch Queue 像一个生产任务的生产者，而 Dispatch Source 像处理任务的消费者。可以一边异步生产，也可一边异步消费。你可以在任意线程上调用 `dispatch_source_merge_data` 以触发 `dispatch_source_set_event_handler` 。而句柄的执行线程，取决于你创建句柄时所指定的线程，如果你像下面这样创建，那么句柄永远会在主线程执行：
+答案是：没有关系。两者会独立运行。 Dispatch Queue 像一个生产任务的生产者，而 Dispatch Source 像处理任务的消费者。可以一边异步生产，也可一边异步消费。你可以在任意线程上调用 `dispatch_source_merge_data` 以触发 `dispatch_source_set_event_handler` 。而句柄的执行线程，取决于你创建句柄时所指定的线程，如果你像下面这样创建，那么句柄会在主线程执行：
 
 
  ```Objective-C
@@ -1198,7 +1198,7 @@ NSURLSession 取消了同步方法，但是可以借助信号量来实现：
 }
  ```
 
-所以当遇到Watchdog日志时，可以检查下上图几个方法是否有比较重的阻塞UI的动作。
+所以当遇到Watchdog日志时，可以检查下上面几个方法是否有比较重的阻塞UI的动作。
 
 [ ***QA1693：Synchronous Networking On The Main Thread*** ]( https://developer.apple.com/library/ios/qa/qa1693/_index.html ) 举的例子就是在主线程进行同步网络请求。如果我们是在公司的Wifi环境下使用则一切顺利，但当应用程序发布出去面向很大范围的用户，在各种网络环境下运行，则不可避免地会出现一片Watchdog超时报告。
 另一种可能出现问题的场景就是数据量比较大的情况下进行的数据库版本迁移（同样是在主线程上）。
