@@ -74,7 +74,7 @@
  > Parse-SDK-iOS-OSX：著名的 BaaS 公司 Parse 最近开源了它们的 iOS/OSX SDK。Parse 的服务虽然在国内可能访问速度不是很理想，但是它们在服务的稳定性和 SDK 质量上一直有非常优异的表现。此次开源的 SDK 对于日常工作是 SDK 开发的开发者来说，是一个难得的学习机会。Parse 的存取操作涉及到很多多线程的问题，从 Parse SDK 的源代码中可以看出，这个 SDK 的开发者对 iOS 开发多线程有着非常深厚的理解和功底，让人叹服。我个人推荐对此感兴趣的朋友可以尝试从阅读 internal 文件夹下的两个EventuallyQueue 文件开始着手，研究下 Parse 的底层多线程处理思路。
 
 类似的服务：
- Apple 的 [Cloud​Kit](http://nshipster.cn/cloudkit/) 、 国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) 。
+ Apple 的 [Cloud​Kit](http://nshipster.cn/cloudkit/) 、 国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn/?source=T6M35E4H) 。
 
 ## Parse 的“离线存储对象”操作介绍
 
@@ -85,9 +85,9 @@
 
 所有 saveEventually（或 deleteEventually）的相关调用，将按照调用的顺序依次执行。因此，多次对某一对象使用 saveEventually 是安全的。
 
-国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) 也提供了相同的功能，所以以上《Parse 的“离线存储对象”操作介绍》部分完全摘录自 LeanCloud 的文档。详见[《LeanCloud官方文档-iOS / OS X 数据存储开发指南--离线存储对象》](https://leancloud.cn/docs/ios_os_x_guide.html#离线存储对象) 
+国内的 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn/?source=T6M35E4H) 也提供了相同的功能，所以以上《Parse 的“离线存储对象”操作介绍》部分完全摘录自 LeanCloud 的文档。详见[《LeanCloud官方文档-iOS / OS X 数据存储开发指南--离线存储对象》](https://leancloud.cn/docs/ios_os_x_guide.html#离线存储对象) 
 
-（利益相关声明：本人目前就职于 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn) ）
+（利益相关声明：本人目前就职于 [LeanCloud（原名 `AVOS` ）](https://leancloud.cn/?source=T6M35E4H) ）
 
 
 ## Parse 的“离线存储对象”实现介绍
