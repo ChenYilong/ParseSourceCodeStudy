@@ -1,6 +1,3 @@
-#下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注
-
-
 # Parse源码浅析系列（一）---Parse的底层多线程处理思路：GCD高级用法
 
 【前言】从iOS7升到iOS8后，GCD 出现了一个重大的变化：在 iOS7 时，使用 GCD 的并行队列，  `dispatch_async`  最大开启的线程一直能控制在6、7条，线程数都是个位数，然而 iOS8后，最大线程数一度可以达到40条、50条。然而在文档上并没有对这一做法的目的进行介绍。
@@ -1221,8 +1218,6 @@ NSURLSession 取消了同步方法，但是可以借助信号量来实现：
  [《iOS应用的crash日志的分析基础》]( http://blog.csdn.net/jasonblog/article/details/19031517 ) 
 
 参考链接： [GitHub:Parse-SDK-iOS-OSX源码](https://github.com/ParsePlatform/Parse-SDK-iOS-OSX) 
-
-# 下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注
 
 ----------
 

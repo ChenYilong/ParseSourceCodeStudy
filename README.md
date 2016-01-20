@@ -7,10 +7,9 @@
   
  附上：[《GCD 扫盲篇》](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/01_Parse的多线程处理思路/GCD扫盲篇.md)
 
- 2. 下篇预告：Parse的网络缓存与离线存储，敬请 star 持续关注
+ 2.  [iOS网络缓存扫盲篇--使用两行代码就能完成80%的缓存需求](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md) 
 
-
-
+3. 下篇预告：Parse的网络缓存与离线存储之“使用80%的代码来完成剩下的20%的缓存需求”，敬请 star 持续关注
 
 
 ----------
