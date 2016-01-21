@@ -3,7 +3,22 @@
 
 下篇预告：[使用80%的代码来完成剩下的20%的缓存需求](https://github.com/ChenYilong/ParseSourceCodeStudy) 。敬请 star （右上角）持续关注。
 
-  由于微信、QQ、微博、这类的应用使用缓存很“重”，使一般的用户也对缓存也非常习惯。缓存已然成为必备。
+
+目录
+
+ 1. [当我们在谈论缓存的时候，我们在谈论什么？](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#当我们在谈论缓存的时候我们在谈论什么) 
+ 2.  [GET网络请求缓存](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#get网络请求缓存) 
+  1.  [80%的缓存需求：两行代码就可满足](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#80的缓存需求两行代码就可满足) 
+  2.  [控制缓存的有效性](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#控制缓存的有效性)   
+  3.  [文件缓存：借助ETag或Last-Modified判断文件缓存是否有效](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#文件缓存借助etag或last-modified判断文件缓存是否有效) 
+      1.  [Last-Modified](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#last-modified) 
+     2.  [ETag](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#etag) 
+     3.  [总结](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#总结) 
+  4.  [一般数据类型借助 Last-Modified 与 ETag 进行缓存](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#一般数据类型借助-last-modified-与--etag-进行缓存) 
+ 3.  [剩下20%的网络缓存需求--真的有NSURLCache 不能满足的需求？](https://github.com/ChenYilong/ParseSourceCodeStudy/blob/master/02_Parse的网络缓存与离线存储/iOS网络缓存扫盲篇.md#剩下20的网络缓存需求) 
+
+由于微信、QQ、微博、这类的应用使用缓存很“重”，使一般的用户也对缓存也非常习惯。缓存已然成为必备。
+
 
  > 缓存的目的的以空间换时间
 
