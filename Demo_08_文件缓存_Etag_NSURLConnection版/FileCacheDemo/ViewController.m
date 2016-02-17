@@ -57,7 +57,7 @@ static NSString *const kLastModifiedImageURL = @"http://image17-c.poco.cn/mypoco
     
     [NSURLConnection sendAsynchronousRequest:request queue:[NSOperationQueue mainQueue] completionHandler:^(NSURLResponse *response, NSData *data, NSError *connectionError) {
         
-        // NSLog(@"%@ %tu", response, data.length);dd
+        // NSLog(@"%@ %tu", response, data.length);
         // 类型转换（如果将父类设置给子类，需要强制转换）
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
         NSLog(@"statusCode == %@", @(httpResponse.statusCode));
