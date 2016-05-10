@@ -32,7 +32,7 @@
 
 
 
-（iOS开发学习交流群：458884057）
+（iOS开发学习交流群：541317935）
 
 
 第一篇的目的是通过解读 Parse 源码来展示GCD两个高级用法： `Dispatch Source ` （派发源）和 `Dispatch Semaphore`  （信号量）。首先通过Parse 的“离线存储对象”操作，来介绍 `Dispatch Source ` （派发源）；然后通过Parse 的单元测试中使用的技巧“强制把异步任务转换为同步任务来方便进行单元测试”来介绍`Dispatch Semaphore`  （信号量）。我已将思路浓缩为可运行的7个 Demo 中，详见仓库里的 Demo1到 Demo7。
