@@ -30,7 +30,7 @@
      *
      */
     NSMutableArray *array = [[NSMutableArray alloc] init];
-    for(int i = 0; i< 100000; ++i) {
+    for(int i = 0; i< 100; ++i) {
         dispatch_async_limit(queue, 1, ^{
             /*
              *
@@ -50,7 +50,7 @@
              *因此可安全地进行更新
              *
              */
-            NSLog(@"🔴%@",[NSThread currentThread]);
+            NSLog(@"%d 🔴%@", i, [NSThread currentThread]);
             [array addObject:[NSNumber numberWithInt:i]];
             /*
              *
@@ -96,7 +96,8 @@ void dispatch_async_limit(dispatch_queue_t queue,NSUInteger limitSemaphoreCount,
     dispatch_async(receiverQueue, ^{
         //可用信号量后才能继续，否则等待
         dispatch_semaphore_wait(limitSemaphore, DISPATCH_TIME_FOREVER);
-        dispatch_async(queue, ^{
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), queue, ^{
             !block ? : block();
             //在该工作线程执行完成后释放信号量
             dispatch_semaphore_signal(limitSemaphore);
