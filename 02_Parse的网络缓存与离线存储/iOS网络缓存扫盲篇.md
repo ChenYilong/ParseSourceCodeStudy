@@ -1,5 +1,4 @@
-#iOS网络缓存扫盲篇
-#--使用两行代码就能完成80%的缓存需求
+# iOS网络缓存扫盲篇--使用两行代码就能完成80%的缓存需求
 
 下篇预告：[使用80%的代码来完成剩下的20%的缓存需求](https://github.com/ChenYilong/ParseSourceCodeStudy) 。敬请 star （右上角）持续关注。
 
@@ -46,10 +45,10 @@
 
 ![enter image description here](http://i66.tinypic.com/r6wrgx.jpg)
 
-- | 第一种 |第二种
+对比项目 | 第一种 | 第二种
 -------------|-------------|-------------
-目的| 优化型缓存 | 功能型缓存
- 具体描述 |  出于优化考虑：服务器压力、用户体验、为用户剩流量等等。同时优化型缓存也有内存缓存和磁盘缓存之分。 | App离线也能查看，出于功能考虑，属于存储范畴
+目的 | 优化型缓存 | 功能型缓存
+具体描述 |  出于优化考虑：服务器压力、用户体验、为用户剩流量等等。同时优化型缓存也有内存缓存和磁盘缓存之分。 | App离线也能查看，出于功能考虑，属于存储范畴
 常见概念 | GET网络请求缓存、WEB缓存 | 离线存储
 典型应用 |  微信首页的会话列表、微信头像、朋友圈、网易新闻新闻列表、 |   微信聊天记录、
 Parse对应的类 | PFCachedQueryController | PFOfflineStore
@@ -80,6 +79,9 @@ NSURLCache *urlCache = [[NSURLCache alloc] initWithMemoryCapacity:4 * 1024 * 102
 [NSURLCache setSharedURLCache:urlCache];
 ```
 
+
+
+
 第三个步骤：没有第三步！
 
 
@@ -94,6 +96,15 @@ NSURLCache *urlCache = [[NSURLCache alloc] initWithMemoryCapacity:4 * 1024 * 102
 
 * iOS 5.0开始，支持磁盘缓存，但仅支持 HTTP
 * iOS 6.0开始，支持 HTTPS 缓存
+
+ 如果不设置自定义路径，也就是设置 NSURLCache 时 `diskPath` 部分传参数时，传入nil坑比较少，但是如果传入自定义路径，那么坑比较多需要注意：
+
+设置自定义路径时需要注意：
+
+* 设置 NSURLCache 时 `diskPath` 部分传参数时，注意只需要写文件夹名字即可，不需要写全路径。比如传入 `@"123"` 就会自动创建 `Library/Caches/{bundleid}/123/`。
+* 重复设置 NSURLCache 时需要注意：如果先设置的默认路径，之后再设置自定义路径的 NSURLCache 时，如果设置前已经发生网络请求，并且已经在默认路径中写入了数据，那么就会出现错乱：虽然在新自定义路径中保存了cache，但读 cache 还是会从默认路径读取，造成每次都找不到cache而重新请求。
+* 设置自定义路径后，之前默认的 cache 并不会清除。需要手动删除 `[[NSURLCache sharedURLCache] removeAllCachedResponses];`，记得在设置新缓存之前删除，否则 `[NSURLCache sharedURLCache]` 返回的就是旧有的缓存。可以升级app时删除，也可以在设置自定义路径时删除，做法参考 MRC 的 setter 操作。
+
 
 ### 控制缓存的有效性
 
