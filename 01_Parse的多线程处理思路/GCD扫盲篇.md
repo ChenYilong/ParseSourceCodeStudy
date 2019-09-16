@@ -12,8 +12,8 @@ GCD有四个概念：串行队列、并行队列、同步、异步四者。
 -------------|-------------|------------- | ----------
 同步 |完成需要做的任务后才会返回，进行下一任务 | “任务”，在 GCD 里指的是 Block；在 performSelector 方法中，对应 selector 方法。</p>同步方法，功能类似  `dispatch_group_wait` ，而 group 指的是所有线程，包括主线程。 | </p> 不一定是多线程
 异步 | 不会等待任务完成才返回，会立即返回。 | 异步是多线程的代名词，因为必定会开启新的线程，线程的申请是由异步负责，起到开分支的作用。 | --
-串行队列 | 任务依次执行 | 同一时间队列中只有一个任务在执行，每个任务只有在前一个任务执行完成后才能开始执行。| 你不知道在一个Block（任务）执行结束到下一个Block（任务）开始执行之间的这段时间时间是多长，![enter image description here](http://cdn4.raywenderlich.com/wp-content/uploads/2014/01/Serial-Queue-480x272.png)
-并行队列 | 任务并发执行 | 你唯一能保证的是，这些任务会按照被添加的顺序开始执行。但是任务可以以任何顺序完成 |  你不知道在执行下一个任务是从什么时候开始，或者说任意时刻有多个Block（任务）运行，这个完全是取决于GCD。![enter image description here](http://cdn3.raywenderlich.com/wp-content/uploads/2014/01/Concurrent-Queue-480x272.png)
+串行队列 | 任务依次执行 | 同一时间队列中只有一个任务在执行，每个任务只有在前一个任务执行完成后才能开始执行。| 你不知道在一个Block（任务）执行结束到下一个Block（任务）开始执行之间的这段时间时间是多长，![](http://ww4.sinaimg.cn/large/006y8mN6gy1g71pox57qkj30dc07kt8x.jpg)
+并行队列 | 任务并发执行 | 你唯一能保证的是，这些任务会按照被添加的顺序开始执行。但是任务可以以任何顺序完成 |  你不知道在执行下一个任务是从什么时候开始，或者说任意时刻有多个Block（任务）运行，这个完全是取决于GCD。![](http://ww2.sinaimg.cn/large/006y8mN6gy1g71ppa1s03j30dc07kglu.jpg)
 全局队列 | 隶属于并行队列 | 不要与 barrier 栅栏方法搭配使用， barrier 只有与自定义的并行队列一起使用，才能让 barrier 达到我们所期望的栅栏功能。与 串行队列或者 global 队列 一起使用，barrier 的表现会和 dispatch_sync 方法一样。
 主队列 | 隶属于串行队列 | 不能与 sync 同步方法搭配使用，会造成死循环
 

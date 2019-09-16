@@ -35,15 +35,15 @@
 
 缓存有不同的分类方法：
 
-![enter image description here](http://i67.tinypic.com/3097yvc.jpg)
 
+<p align="center"><a href="https://mp.weixin.qq.com/s/A4e5h3xgIEh6PInf1Rjqsw"><img src="http://ww3.sinaimg.cn/large/006y8mN6gy1g71q0rbtvhj308z05y74f.jpg"></a></p>
 
 这里所指的缓存，是一个宽泛的概念。
 
 我们这里主要按照功能进行划分：
 
 
-![enter image description here](http://i66.tinypic.com/r6wrgx.jpg)
+<p align="center"><a href="https://mp.weixin.qq.com/s/A4e5h3xgIEh6PInf1Rjqsw"><img src="http://ww4.sinaimg.cn/large/006y8mN6gy1g71q16mg1gj30a904zq32.jpg"></a></p>
 
 对比项目 | 第一种 | 第二种
 -------------|-------------|-------------
@@ -438,7 +438,7 @@ static NSString *const kETagImageURL = @"http://ac-g3rossf7.clouddn.com/xc8hxXBb
 
 运行效果：
 
-![enter image description here](http://i68.tinypic.com/3yhhx.jpg)
+![enter image description here](http://ww2.sinaimg.cn/large/006y8mN6gy1g71q244excg30cm073tfm.gif)
 
 ### 总结
 
@@ -530,3 +530,5 @@ static NSString *const kLastModifiedImageURL = @"http://image17-c.poco.cn/mypoco
 系统帮我们做的缓存，好处是自动，无需我们进行复杂的设置。坏处也恰恰是这个：不够灵活，不能自定义。只能指定一个缓存的总文件夹，不能分别指定每一个文件缓存的位置，更不能为每个文件创建一个文件夹，也不能指定文件夹的名称。缓存的对象也是固定的：只能是 GET请求的返回值。
 
 下一篇文章我们将主要围绕这一问题展开讨论下：[使用80%的代码来完成剩下的20%的缓存需求](https://github.com/ChenYilong/ParseSourceCodeStudy) 。敬请 star （右上角）持续关注
+
+

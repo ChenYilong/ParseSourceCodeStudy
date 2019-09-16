@@ -9,7 +9,7 @@
 
 大概 80%的iOS 开发者会支持使用 GCD 来完成操作队列的实现，而且有 60% 的开发已经在项目中使用。
 
-![enter image description here](http://i65.tinypic.com/2vj1md2.jpg)
+![enter image description here](http://ww3.sinaimg.cn/large/006y8mN6gy1g71prxi3qcj30h70bf0tx.jpg)
 
 
 更是有人这样表态：
@@ -18,7 +18,7 @@
 假如不让他用 GCD：
 
 
-![enter image description here](http://i66.tinypic.com/34g8qd1.jpg)
+![enter image description here](http://ww1.sinaimg.cn/large/006y8mN6gy1g71pscikhfj30b702lglo.jpg)
 
 这种现象一直存在，包括 ARC 与 MRC、SB建 UI 与纯代码建 UI、SQL 与 CoreData的争论。
 
@@ -557,10 +557,9 @@ dispatch_resume (source);
 
 并取消打印线程的 `NSLog` ，然后使用下图中的快捷键迅速触发 `didReceiveMemoryWarning`  以切换Dispatch Source(分派源)的状态:
 
-![enter image description here](http://i61.tinypic.com/6thjmf.jpg)
+<p align="center"><a href="https://mp.weixin.qq.com/s/A4e5h3xgIEh6PInf1Rjqsw"><img src="http://ww4.sinaimg.cn/large/006y8mN6gy1g71pswdcgoj30dz086wfj.jpg"></a></p>
 
-
-![enter image description here](http://i59.tinypic.com/suyt0o.jpg)
+<p align="center"><a href="https://mp.weixin.qq.com/s/A4e5h3xgIEh6PInf1Rjqsw"><img src="http://ww3.sinaimg.cn/large/006y8mN6gy1g71pxwgofyj30co0a20us.jpg"></a></p>
 
 详见 `Demo1` 实现（Demo_01_对DispatchSource实现取消恢复操作_main队列版）。
 
@@ -695,7 +694,7 @@ dispatch_async(queue, ^{
 }
  ```
 
-![enter image description here](http://i61.tinypic.com/33m06er.jpg)
+<p align="center"><a href="https://mp.weixin.qq.com/s/A4e5h3xgIEh6PInf1Rjqsw"><img src="http://ww1.sinaimg.cn/large/006y8mN6gy1g71px5j32xj30ig039aai.jpg"></a></p>
 
 
 详见 Demo4（Demo_04_对DispatchQueue实现取消恢复操作_综合版）
@@ -808,7 +807,7 @@ dispatch_async(queue, ^{
 
  1. 第一次：崩溃。。。
 
- ![enter image description here](http://i67.tinypic.com/29vxt9w.jpg)
+<p align="center"><a href="https://mp.weixin.qq.com/s/A4e5h3xgIEh6PInf1Rjqsw"><img src="http://ww4.sinaimg.cn/large/006y8mN6gy1g71pz86ihfj30jg028q3c.jpg"></a></p>
 
 
  ```Objective-C
